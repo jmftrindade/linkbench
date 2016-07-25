@@ -14,11 +14,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class DataGen extends GraphStore {
 
-  class NodeStore {
+  class DGNodeStore {
     private BufferedWriter writer;
     private AtomicLong currentId;
 
-    public NodeStore(String path, long startId) throws IOException {
+    public DGNodeStore(String path, long startId) throws IOException {
       this.writer = new BufferedWriter(new FileWriter(path));
       this.currentId = new AtomicLong(startId);
     }
@@ -34,10 +34,10 @@ public class DataGen extends GraphStore {
     }
   }
 
-  class LinkStore {
+  class DGLinkStore {
     private BufferedWriter writer;
 
-    public LinkStore(String path) throws IOException {
+    public DGLinkStore(String path) throws IOException {
       this.writer = new BufferedWriter(new FileWriter(path));
     }
 
@@ -61,8 +61,8 @@ public class DataGen extends GraphStore {
   }
 
   private String dataPath;
-  private HashMap<String, NodeStore> nodeStores;
-  private HashMap<String, LinkStore> linkStores;
+  private HashMap<String, DGNodeStore> nodeStores;
+  private HashMap<String, DGLinkStore> linkStores;
 
   public DataGen() {
     this.dataPath = "data";
@@ -92,10 +92,10 @@ public class DataGen extends GraphStore {
    */
   @Override public void resetNodeStore(String dbid, long startID) throws Exception {
     synchronized (nodeStores) {
-      NodeStore store = nodeStores.get(dbid);
+      DGNodeStore store = nodeStores.get(dbid);
       if (store != null)
         store.close();
-      nodeStores.put(dbid, new NodeStore(dataPath + "_" + dbid + ".node", startID));
+      nodeStores.put(dbid, new DGNodeStore(dataPath + "_" + dbid + ".node", startID));
     }
   }
 
@@ -115,7 +115,7 @@ public class DataGen extends GraphStore {
    */
   @Override public long addNode(String dbid, Node node) throws Exception {
     synchronized (nodeStores) {
-      NodeStore store = nodeStores.get(dbid);
+      DGNodeStore store = nodeStores.get(dbid);
       return store.addNode(node);
     }
   }
@@ -159,6 +159,21 @@ public class DataGen extends GraphStore {
    * Do any cleanup.  After this is called, store won't be reused
    */
   @Override public void close() {
+    for (DGNodeStore store : nodeStores.values()) {
+      try {
+        store.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    for (DGLinkStore store: linkStores.values()) {
+      try {
+        store.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   @Override public void clearErrors(int threadID) {
@@ -177,9 +192,9 @@ public class DataGen extends GraphStore {
    */
   @Override public boolean addLink(String dbid, Link a, boolean noinverse) throws Exception {
     synchronized (linkStores) {
-      LinkStore store = linkStores.get(dbid);
+      DGLinkStore store = linkStores.get(dbid);
       if (store == null) {
-        store = new LinkStore(dataPath + "_" + dbid + ".assoc");
+        store = new DGLinkStore(dataPath + "_" + dbid + ".assoc");
         linkStores.put(dbid, store);
       }
       return store.addLink(a);
