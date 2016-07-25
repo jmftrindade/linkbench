@@ -39,23 +39,21 @@ public class LinkStoreTitan extends GraphStore {
   /**
    * initialize the store object
    */
-  @Override public void initialize(Properties p, Phase currentPhase, int threadId)
+  @Override public synchronized void initialize(Properties p, Phase currentPhase, int threadId)
     throws IOException {
     LOG.info("Phase " + currentPhase.ordinal() + ", ThreadID = " + threadId + ", Object = " + this);
-    synchronized (this) {
-      if (g == null && currentPhase == Phase.LOAD) {
-        String configFile = p.getProperty("titan_config_file");
-        LOG.info("Reading from configuration file " + configFile);
-        Configuration conf = null;
-        try {
-          conf = new PropertiesConfiguration(configFile);
-        } catch (ConfigurationException e) {
-          LOG.info("Error reading configuration: " + e.getMessage());
-        }
-        LOG.info("Creating connection to Titan...");
-        g = TitanFactory.open(conf);
-        LOG.info("Connection successful.");
+    if (g == null && currentPhase == Phase.LOAD) {
+      String configFile = p.getProperty("titan_config_file");
+      LOG.info("Reading from configuration file " + configFile);
+      Configuration conf = null;
+      try {
+        conf = new PropertiesConfiguration(configFile);
+      } catch (ConfigurationException e) {
+        LOG.info("Error reading configuration: " + e.getMessage());
       }
+      LOG.info("Creating connection to Titan...");
+      g = TitanFactory.open(conf);
+      LOG.info("Connection successful.");
     }
   }
 
