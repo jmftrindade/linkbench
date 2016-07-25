@@ -196,6 +196,7 @@ public class LinkBenchDriver {
         throw new Exception("Specified NodeStore class " + nodeStoreClassName
                           + " is not a subclass of NodeStore");
       }
+      logger.info("LinkStore and NodeStore are the same.");
       return (NodeStore)linkStore;
     } else {
       NodeStore nodeStore;
