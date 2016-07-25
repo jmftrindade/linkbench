@@ -58,7 +58,9 @@ public class DataGenNodeStore implements NodeStore {
    * @return the id allocated for the node
    */
   @Override public long addNode(String dbid, Node node) throws Exception {
+
     long id = currentId.getAndIncrement();
+    LOG.info("Writing node " + id);
     writer.write(new String(node.data) + "\n");
     return id;
   }
