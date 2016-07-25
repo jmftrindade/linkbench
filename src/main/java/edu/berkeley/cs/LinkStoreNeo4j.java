@@ -17,7 +17,7 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class LinkStoreNeo4j extends GraphStore {
-  private final Logger LOG = Logger.getLogger(LinkStoreNeo4j.class);
+  private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
   private static GraphDatabaseService db = null;
   private static Index<org.neo4j.graphdb.Node> idIndex = null;
   private static Comparator<Link> linkComparator;
