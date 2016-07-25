@@ -21,7 +21,7 @@ public class LinkStoreTitan extends GraphStore {
 
   private static TitanGraph g = null;
   private AtomicLong idGenerator = new AtomicLong(1L);
-
+  private final String initLock = "initLock";
   private static Comparator<Link> linkComparator;
 
   static {
@@ -40,12 +40,14 @@ public class LinkStoreTitan extends GraphStore {
    */
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws IOException {
-    if (g == null && currentPhase == Phase.LOAD && threadId == 1) {
-      Configuration conf = new PropertiesConfiguration();
-      for (Map.Entry<Object, Object> entry : p.entrySet()) {
-        conf.setProperty(entry.getKey().toString(), entry.getValue().toString());
+    synchronized (initLock) {
+      if (g == null && currentPhase == Phase.LOAD && threadId == 1) {
+        Configuration conf = new PropertiesConfiguration();
+        for (Map.Entry<Object, Object> entry : p.entrySet()) {
+          conf.setProperty(entry.getKey().toString(), entry.getValue().toString());
+        }
+        g = TitanFactory.open(conf);
       }
-      g = TitanFactory.open(conf);
     }
   }
 
