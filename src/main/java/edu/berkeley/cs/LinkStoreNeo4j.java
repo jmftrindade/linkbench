@@ -74,11 +74,13 @@ public class LinkStoreNeo4j extends GraphStore {
         } else {
           db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
         }
+        assert db != null : "DB initialization unsuccessful.";
         registerShutdownHook(db);
       }
       if (idIndex == null) {
         LOG.info("Initializing ID index...");
         idIndex = db.index().forNodes("identifier");
+        assert idIndex != null : "ID Index initialization unsuccessful.";
       }
       LOG.info("Initialization complete.");
     }
