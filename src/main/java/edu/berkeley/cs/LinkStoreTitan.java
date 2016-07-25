@@ -52,7 +52,12 @@ public class LinkStoreTitan extends GraphStore {
         LOG.info("Error reading configuration: " + e.getMessage());
       }
       LOG.info("Creating connection to Titan...");
-      g = TitanFactory.open(conf);
+      try {
+        g = TitanFactory.open(conf);
+      } catch (Exception e) {
+        LOG.info("Error connecting to Titan: " + e.getMessage());
+        return;
+      }
       LOG.info("Connection successful.");
     }
   }
