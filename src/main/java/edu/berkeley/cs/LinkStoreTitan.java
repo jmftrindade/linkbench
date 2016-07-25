@@ -43,7 +43,7 @@ public class LinkStoreTitan extends GraphStore {
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws IOException {
     synchronized (initLock) {
-      if (g == null && currentPhase == Phase.LOAD) {
+      if (g == null && currentPhase == Phase.LOAD && threadId == 1) {
         String configFile = p.getProperty("titan_config_file");
         LOG.info("Reading from configuration file " + configFile);
         Configuration conf = null;
