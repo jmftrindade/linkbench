@@ -41,7 +41,7 @@ public class LinkStoreTitan extends GraphStore {
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws IOException {
     synchronized (initLock) {
-      if (g == null && currentPhase == Phase.LOAD && threadId == 1) {
+      if (g == null && currentPhase == Phase.LOAD) {
         Configuration conf = new PropertiesConfiguration();
         for (Map.Entry<Object, Object> entry : p.entrySet()) {
           conf.setProperty(entry.getKey().toString(), entry.getValue().toString());
