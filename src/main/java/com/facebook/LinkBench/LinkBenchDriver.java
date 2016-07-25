@@ -225,13 +225,14 @@ public class LinkBenchDriver {
 
     double nodeLoadTime_s = 0.0;
     if (genNodes) {
-      LatencyStats nodeLatencyStats = new LatencyStats(nLoaders);
-      List<Runnable> nodeLoaders = new ArrayList<>(nLoaders);
-      for (int i = 0; i < nLoaders; i++) {
+      int nNodeLoaders = 1;
+      LatencyStats nodeLatencyStats = new LatencyStats(nNodeLoaders);
+      List<Runnable> nodeLoaders = new ArrayList<>(nNodeLoaders);
+      for (int i = 0; i < nNodeLoaders; i++) {
         NodeStore nodeStore = createNodeStore(linkStore);
         Random rng = new Random(masterRandom.nextLong());
-        nodeLoaders.add(
-          new NodeLoader(props, logger, nodeStore, rng, nodeLatencyStats, csvStreamFile, i));
+        nodeLoaders
+          .add(new NodeLoader(props, logger, nodeStore, rng, nodeLatencyStats, csvStreamFile, i));
       }
 
       // run node loaders
@@ -258,9 +259,8 @@ public class LinkBenchDriver {
     LoadProgress loadTracker = LoadProgress.create(logger, props);
     for (int i = 0; i < nLoaders; i++) {
       bulkLoad = bulkLoad && linkStore.bulkLoadBatchSize() > 0;
-      LinkBenchLoad l =
-        new LinkBenchLoad(linkStore, props, linkLatencyStats, csvStreamFile, i, maxid1 == startid1 + 1,
-          chunk_q, loadTracker);
+      LinkBenchLoad l = new LinkBenchLoad(linkStore, props, linkLatencyStats, csvStreamFile, i,
+        maxid1 == startid1 + 1, chunk_q, loadTracker);
       linkLoaders.add(l);
     }
 
