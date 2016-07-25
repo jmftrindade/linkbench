@@ -4,9 +4,11 @@ import com.facebook.LinkBench.GraphStore;
 import com.facebook.LinkBench.Link;
 import com.facebook.LinkBench.Node;
 import com.facebook.LinkBench.Phase;
+import com.thinkaurelius.titan.core.PropertyKey;
 import com.thinkaurelius.titan.core.TitanFactory;
 import com.thinkaurelius.titan.core.TitanGraph;
 import com.thinkaurelius.titan.core.TitanTransaction;
+import com.thinkaurelius.titan.core.schema.TitanManagement;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
@@ -61,6 +63,13 @@ public class LinkStoreTitan extends GraphStore {
         throw e;
       }
       LOG.info("Connection successful.");
+      LOG.info("Creating index on iid...");
+      TitanManagement mgmt = g.getManagementSystem();
+      PropertyKey iid = mgmt.makePropertyKey("iid").dataType(Long.class).make();
+      mgmt.buildIndex("iid", Vertex.class).addKey(iid).unique().buildCompositeIndex();
+      LOG.info("Index creation successful.");
+    } else {
+      LOG.info("Connections already initialized; skipping initialization.");
     }
   }
 
