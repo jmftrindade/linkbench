@@ -11,6 +11,7 @@ import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
 import java.io.IOException;
@@ -42,9 +43,12 @@ public class LinkStoreTitan extends GraphStore {
     throws IOException {
     synchronized (initLock) {
       if (g == null && currentPhase == Phase.LOAD) {
-        Configuration conf = new PropertiesConfiguration();
-        for (Map.Entry<Object, Object> entry : p.entrySet()) {
-          conf.setProperty(entry.getKey().toString(), entry.getValue().toString());
+        String configFile = p.getProperty("titan_config_file");
+        Configuration conf = null;
+        try {
+          conf = new PropertiesConfiguration(configFile);
+        } catch (ConfigurationException e) {
+          e.printStackTrace();
         }
         g = TitanFactory.open(conf);
       }
