@@ -70,11 +70,15 @@ public class LinkStoreNeo4j extends GraphStore {
           LOG.info("Page Cache Memory = " + pageCacheMem);
 
           if (tuned) {
+            LOG.info("Initializing tuned database...");
             db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath)
               .setConfig(GraphDatabaseSettings.cache_type, "none")
               .setConfig(GraphDatabaseSettings.pagecache_memory, pageCacheMem).newGraphDatabase();
+            LOG.info("Completed initializing tuned database.");
           } else {
+            LOG.info("Initializing untuned database...");
             db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
+            LOG.info("Completed initializing tuned database.");
           }
           assert db != null : "DB initialization unsuccessful.";
           LOG.info("Database initialization: " + db.toString());
