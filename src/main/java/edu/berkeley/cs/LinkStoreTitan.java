@@ -56,6 +56,7 @@ public class LinkStoreTitan extends GraphStore {
         g = TitanFactory.open(conf);
       } catch (Exception e) {
         LOG.info("Error connecting to Titan: " + e.getMessage());
+        Thread.currentThread().interrupt();
         return;
       }
       LOG.info("Connection successful.");
