@@ -21,7 +21,6 @@ public class LinkStoreNeo4j extends GraphStore {
   private static GraphDatabaseService db = null;
   private static Index<org.neo4j.graphdb.Node> idIndex = null;
   private static Comparator<Link> linkComparator;
-  private final String initLock = "initLock";
 
   static {
     linkComparator = new Comparator<Link>() {
@@ -58,7 +57,7 @@ public class LinkStoreNeo4j extends GraphStore {
     throws Exception {
 
     LOG.info("Phase " + currentPhase.ordinal() + ", ThreadID = " + threadId);
-    synchronized (initLock) {
+    synchronized (this) {
       if (currentPhase == Phase.LOAD && threadId == 1) {
         if (db == null) {
           LOG.info("Initializing db...");

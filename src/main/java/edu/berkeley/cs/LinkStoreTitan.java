@@ -23,7 +23,6 @@ public class LinkStoreTitan extends GraphStore {
   private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
   private static TitanGraph g = null;
   private AtomicLong idGenerator = new AtomicLong(1L);
-  private final String initLock = "initLock";
   private static Comparator<Link> linkComparator;
 
   static {
@@ -42,7 +41,7 @@ public class LinkStoreTitan extends GraphStore {
    */
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws IOException {
-    synchronized (initLock) {
+    synchronized (this) {
       if (g == null && currentPhase == Phase.LOAD && threadId == 1) {
         String configFile = p.getProperty("titan_config_file");
         LOG.info("Reading from configuration file " + configFile);
