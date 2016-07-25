@@ -21,6 +21,7 @@ public class LinkStoreNeo4j extends GraphStore {
   private static GraphDatabaseService db = null;
   private static Index<org.neo4j.graphdb.Node> idIndex = null;
   private static Comparator<Link> linkComparator;
+  private final String initLock = "initLock";
 
   static {
     linkComparator = new Comparator<Link>() {
@@ -57,34 +58,36 @@ public class LinkStoreNeo4j extends GraphStore {
     throws Exception {
 
     LOG.info("Phase " + currentPhase.ordinal() + ", ThreadID = " + threadId);
-    if (currentPhase == Phase.LOAD) {
-      if (db == null) {
-        LOG.info("Initializing db...");
-        String dbPath = p.getProperty("db_path", "neo4j-data");
-        String pageCacheMem = p.getProperty("page_cache_size", "1g");
-        boolean tuned = Boolean.valueOf(p.getProperty("tuned", "false"));
-        LOG.info("Data path = " + dbPath);
-        LOG.info("Tuned = " + tuned);
-        LOG.info("Page Cache Memory = " + pageCacheMem);
+    synchronized (initLock) {
+      if (currentPhase == Phase.LOAD) {
+        if (db == null) {
+          LOG.info("Initializing db...");
+          String dbPath = p.getProperty("db_path", "neo4j-data");
+          String pageCacheMem = p.getProperty("page_cache_size", "1g");
+          boolean tuned = Boolean.valueOf(p.getProperty("tuned", "false"));
+          LOG.info("Data path = " + dbPath);
+          LOG.info("Tuned = " + tuned);
+          LOG.info("Page Cache Memory = " + pageCacheMem);
 
-        if (tuned) {
-          db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath)
-            .setConfig(GraphDatabaseSettings.cache_type, "none")
-            .setConfig(GraphDatabaseSettings.pagecache_memory, pageCacheMem).newGraphDatabase();
-        } else {
-          db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
+          if (tuned) {
+            db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath)
+              .setConfig(GraphDatabaseSettings.cache_type, "none")
+              .setConfig(GraphDatabaseSettings.pagecache_memory, pageCacheMem).newGraphDatabase();
+          } else {
+            db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
+          }
+          assert db != null : "DB initialization unsuccessful.";
+          LOG.info("Database initialization: " + db.toString());
+          registerShutdownHook(db);
         }
-        assert db != null : "DB initialization unsuccessful.";
-        LOG.info("Database initialization: " + db.toString());
-        registerShutdownHook(db);
+        if (idIndex == null) {
+          LOG.info("Initializing ID index...");
+          idIndex = db.index().forNodes("identifier");
+          assert idIndex != null : "ID Index initialization unsuccessful.";
+          LOG.info("Database initialization: " + idIndex.toString());
+        }
+        LOG.info("Initialization complete.");
       }
-      if (idIndex == null) {
-        LOG.info("Initializing ID index...");
-        idIndex = db.index().forNodes("identifier");
-        assert idIndex != null : "ID Index initialization unsuccessful.";
-        LOG.info("Database initialization: " + idIndex.toString());
-      }
-      LOG.info("Initialization complete.");
     }
   }
 
