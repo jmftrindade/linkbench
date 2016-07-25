@@ -59,7 +59,7 @@ public class LinkStoreNeo4j extends GraphStore {
 
     LOG.info("Phase " + currentPhase.ordinal() + ", ThreadID = " + threadId);
     synchronized (initLock) {
-      if (currentPhase == Phase.LOAD) {
+      if (currentPhase == Phase.LOAD && threadId == 1) {
         if (db == null) {
           LOG.info("Initializing db...");
           String dbPath = p.getProperty("db_path", "neo4j-data");
