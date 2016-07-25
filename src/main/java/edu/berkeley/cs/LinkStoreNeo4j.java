@@ -55,7 +55,8 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws Exception {
-    synchronized (db) {
+
+    if (currentPhase == Phase.LOAD && threadId == 0) {
       if (db == null) {
         LOG.info("Initializing db...");
         String dbPath = p.getProperty("db_path", "neo4j-data");
@@ -78,8 +79,8 @@ public class LinkStoreNeo4j extends GraphStore {
         LOG.info("Initializing ID index...");
         idIndex = db.index().forNodes("identifier");
       }
+      LOG.info("Initialization complete.");
     }
-    LOG.info("Initialization complete.");
   }
 
   /**
