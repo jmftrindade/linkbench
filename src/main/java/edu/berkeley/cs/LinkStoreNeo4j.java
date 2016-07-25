@@ -189,7 +189,6 @@ public class LinkStoreNeo4j extends GraphStore {
    * Do any cleanup.  After this is called, store won't be reused
    */
   @Override public void close() {
-    db.shutdown();
   }
 
   @Override public void clearErrors(int threadID) {

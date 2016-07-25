@@ -40,7 +40,7 @@ public class LinkStoreTitan extends GraphStore {
    */
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws IOException {
-    if (g == null) {
+    if (g == null && currentPhase == Phase.LOAD && threadId == 1) {
       Configuration conf = new PropertiesConfiguration();
       for (Map.Entry<Object, Object> entry : p.entrySet()) {
         conf.setProperty(entry.getKey().toString(), entry.getValue().toString());
@@ -145,7 +145,6 @@ public class LinkStoreTitan extends GraphStore {
    * Do any cleanup.  After this is called, store won't be reused
    */
   @Override public void close() {
-    g.shutdown();
   }
 
   @Override public void clearErrors(int threadID) {
