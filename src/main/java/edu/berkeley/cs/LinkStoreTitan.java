@@ -13,13 +13,14 @@ import com.tinkerpop.blueprints.Vertex;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class LinkStoreTitan extends GraphStore {
-
+  private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
   private static TitanGraph g = null;
   private AtomicLong idGenerator = new AtomicLong(1L);
   private final String initLock = "initLock";
@@ -44,13 +45,16 @@ public class LinkStoreTitan extends GraphStore {
     synchronized (initLock) {
       if (g == null && currentPhase == Phase.LOAD) {
         String configFile = p.getProperty("titan_config_file");
+        LOG.info("Reading from configuration file " + configFile);
         Configuration conf = null;
         try {
           conf = new PropertiesConfiguration(configFile);
         } catch (ConfigurationException e) {
-          e.printStackTrace();
+          LOG.info("Error reading configuration: " + e.getMessage());
         }
+        LOG.info("Creating connection to Titan...");
         g = TitanFactory.open(conf);
+        LOG.info("Connection successful.");
       }
     }
   }
