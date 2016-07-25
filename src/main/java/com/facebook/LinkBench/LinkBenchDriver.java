@@ -242,9 +242,8 @@ public class LinkBenchDriver {
     List<Runnable> loaders = new ArrayList<Runnable>(nTotalLoaders);
 
     LoadProgress loadTracker = LoadProgress.create(logger, props);
+    LinkStore linkStore = createLinkStore();
     for (int i = 0; i < nLinkLoaders; i++) {
-      LinkStore linkStore = createLinkStore();
-
       bulkLoad = bulkLoad && linkStore.bulkLoadBatchSize() > 0;
       LinkBenchLoad l = new LinkBenchLoad(linkStore, props, latencyStats,
               csvStreamFile, i, maxid1 == startid1 + 1, chunk_q, loadTracker);
@@ -254,7 +253,7 @@ public class LinkBenchDriver {
     if (genNodes) {
       logger.info("Will generate graph nodes during loading");
       int loaderId = nTotalLoaders - 1;
-      NodeStore nodeStore = createNodeStore(null);
+      NodeStore nodeStore = createNodeStore(linkStore);
       Random rng = new Random(masterRandom.nextLong());
       loaders.add(new NodeLoader(props, logger, nodeStore, rng,
           latencyStats, csvStreamFile, loaderId));
