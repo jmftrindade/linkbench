@@ -56,7 +56,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws Exception {
 
-    LOG.info("Phase " + currentPhase.ordinal() + ", ThreadID = " + threadId);
+    LOG.info("Phase " + currentPhase.ordinal() + ", ThreadID = " + threadId + ", Object = " + this);
     synchronized (this) {
       if (currentPhase == Phase.LOAD && threadId == 1) {
         if (db == null) {
