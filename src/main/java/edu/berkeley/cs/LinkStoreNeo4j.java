@@ -17,14 +17,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class LinkStoreNeo4j extends GraphStore {
 
-  private GraphDatabaseService db = null;
-  private Index<org.neo4j.graphdb.Node> idIndex = null;
-  private AtomicLong idGenerator = new AtomicLong(1L);
-
+  private static GraphDatabaseService db = null;
+  private static Index<org.neo4j.graphdb.Node> idIndex = null;
   private static Comparator<Link> linkComparator;
 
   static {
-
     linkComparator = new Comparator<Link>() {
       @Override public int compare(Link o1, Link o2) {
         if (o2.time == o1.time) {
@@ -34,6 +31,8 @@ public class LinkStoreNeo4j extends GraphStore {
       }
     };
   }
+
+  private AtomicLong idGenerator = new AtomicLong(1L);
 
   /**
    * Helper methods
@@ -49,7 +48,6 @@ public class LinkStoreNeo4j extends GraphStore {
   public RelationshipType linkTypeToRelationshipType(long linkType) {
     return DynamicRelationshipType.withName(String.valueOf(linkType));
   }
-
 
   /**
    * initialize the store object
@@ -216,6 +214,7 @@ public class LinkStoreNeo4j extends GraphStore {
       for (Relationship rel : rels) {
         if ((long) rel.getEndNode().getProperty("id") == id2) {
           rel.delete();
+          tx.success();
           return true;
         }
       }
@@ -244,6 +243,7 @@ public class LinkStoreNeo4j extends GraphStore {
         if ((long) rel.getEndNode().getProperty("id") == a.id2) {
           rel.setProperty("time", a.time);
           rel.setProperty("data", a.data);
+          tx.success();
           return true;
         }
       }

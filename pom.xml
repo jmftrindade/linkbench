@@ -113,6 +113,11 @@
             <artifactId>mysql-connector-java</artifactId>
             <version>5.1.22</version>
         </dependency>
+        <dependency>
+            <groupId>com.thinkaurelius.titan</groupId>
+            <artifactId>titan-cassandra</artifactId>
+            <version>0.5.4</version>
+        </dependency>
     </dependencies>
 
     <profiles>
