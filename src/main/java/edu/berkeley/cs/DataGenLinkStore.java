@@ -3,6 +3,7 @@ package edu.berkeley.cs;
 import com.facebook.LinkBench.Link;
 import com.facebook.LinkBench.LinkStore;
 import com.facebook.LinkBench.Phase;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -10,7 +11,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 public class DataGenLinkStore extends LinkStore {
-
+  private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
   private BufferedWriter writer = null;
 
   /**
@@ -34,7 +35,7 @@ public class DataGenLinkStore extends LinkStore {
     try {
       writer.close();
     } catch (IOException e) {
-      e.printStackTrace();
+      LOG.error("Could not close link writer: " + e.getMessage());
     }
   }
 

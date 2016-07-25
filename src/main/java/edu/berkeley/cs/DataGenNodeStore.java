@@ -3,6 +3,7 @@ package edu.berkeley.cs;
 import com.facebook.LinkBench.Node;
 import com.facebook.LinkBench.NodeStore;
 import com.facebook.LinkBench.Phase;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -12,7 +13,7 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class DataGenNodeStore implements NodeStore {
-
+  private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
   private BufferedWriter writer = null;
   private AtomicLong currentId = new AtomicLong(1L);
 
@@ -39,7 +40,6 @@ public class DataGenNodeStore implements NodeStore {
    * @param startID
    */
   @Override public void resetNodeStore(String dbid, long startID) throws Exception {
-    this.writer = new BufferedWriter(new FileWriter("data.node"));
     this.currentId.set(startID);
   }
 
@@ -131,7 +131,7 @@ public class DataGenNodeStore implements NodeStore {
     try {
       writer.close();
     } catch (IOException e) {
-      e.printStackTrace();
+      LOG.error("Could not close node writer: " + e.getMessage());
     }
   }
 }
