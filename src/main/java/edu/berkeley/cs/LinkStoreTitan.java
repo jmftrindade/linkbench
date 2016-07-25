@@ -44,17 +44,19 @@ public class LinkStoreTitan extends GraphStore {
   @Override public synchronized void initialize(Properties p, Phase currentPhase, int threadId)
     throws IOException {
     LOG.info("Phase " + currentPhase.ordinal() + ", ThreadID = " + threadId + ", Object = " + this);
-    if (g == null && currentPhase == Phase.LOAD) {
+    if (g == null) {
       String configFile = p.getProperty("titan.config_file");
-      String keyspace = p.getProperty("titan.cassandra.keyspace");
+      String keyspace = p.getProperty("storage.cassandra.keyspace");
       LOG.info("Reading from configuration file " + configFile);
       Configuration conf = null;
       try {
         conf = new PropertiesConfiguration(configFile);
-        conf.setProperty("titan.cassandra.keyspace", keyspace);
+        conf.setProperty("storage.cassandra.keyspace", keyspace);
+        LOG.info("Setting keyspace to [" + keyspace + "]");
       } catch (ConfigurationException e) {
         LOG.info("Error reading configuration: " + e.getMessage());
       }
+
       LOG.info("Creating connection to Titan...");
       try {
         g = TitanFactory.open(conf);
@@ -63,11 +65,16 @@ public class LinkStoreTitan extends GraphStore {
         throw e;
       }
       LOG.info("Connection successful.");
-      LOG.info("Creating index on iid...");
-      TitanManagement mgmt = g.getManagementSystem();
-      PropertyKey iid = mgmt.makePropertyKey("iid").dataType(Long.class).make();
-      mgmt.buildIndex("iid", Vertex.class).addKey(iid).unique().buildCompositeIndex();
-      LOG.info("Index creation successful.");
+
+      // Additionally create index if we are in the load phase
+      if (currentPhase == Phase.LOAD) {
+        LOG.info("Creating index on iid...");
+        TitanManagement mgmt = g.getManagementSystem();
+        PropertyKey iid = mgmt.makePropertyKey("iid").dataType(Long.class).make();
+        mgmt.buildIndex("iid", Vertex.class).addKey(iid).unique().buildCompositeIndex();
+        mgmt.commit();
+        LOG.info("Index creation successful.");
+      }
     } else {
       LOG.info("Connections already initialized; skipping initialization.");
     }
