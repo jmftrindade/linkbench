@@ -6,6 +6,7 @@ import com.facebook.LinkBench.Phase;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
@@ -127,6 +128,10 @@ public class DataGenNodeStore implements NodeStore {
    * Close the node store and clean up any resources
    */
   @Override public void close() {
-
+    try {
+      writer.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }
