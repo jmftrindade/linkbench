@@ -58,7 +58,6 @@ public class DataGenNodeStore implements NodeStore {
    * @return the id allocated for the node
    */
   @Override public long addNode(String dbid, Node node) throws Exception {
-
     long id = currentId.getAndIncrement();
     LOG.info("Writing node " + id);
     writer.write(new String(node.data) + "\n");
@@ -75,7 +74,11 @@ public class DataGenNodeStore implements NodeStore {
    * @throws Exception
    */
   @Override public long[] bulkAddNodes(String dbid, List<Node> nodes) throws Exception {
-    return new long[0];
+    long[] ids = new long[nodes.size()];
+    for (int i = 0; i < ids.length; i++) {
+      ids[i] = addNode(dbid, nodes.get(i));
+    }
+    return ids;
   }
 
   /**
