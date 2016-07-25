@@ -159,21 +159,6 @@ public class DataGen extends GraphStore {
    * Do any cleanup.  After this is called, store won't be reused
    */
   @Override public void close() {
-    for (NodeStore store : nodeStores.values()) {
-      try {
-        store.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-
-    for (LinkStore store: linkStores.values()) {
-      try {
-        store.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
   }
 
   @Override public void clearErrors(int threadID) {
