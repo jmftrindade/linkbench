@@ -121,6 +121,21 @@ public class LinkStoreTitan extends GraphStore {
     return id;
   }
 
+  @Override public long[] bulkAddNodes(String dbid, List<Node> nodes) throws Exception {
+    TitanTransaction tx = g.buildTransaction().start();
+    long ids[] = new long[nodes.size()];
+    int i = 0;
+    for (Node node: nodes) {
+      long id = idGenerator.getAndIncrement();
+      Vertex v = tx.addVertex(null);
+      v.setProperty("iid", id);
+      v.setProperty("data", node.data);
+      ids[i++] = id;
+    }
+    tx.commit();
+    return ids;
+  }
+
   /**
    * Get a node of the specified type
    *
