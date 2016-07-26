@@ -1,9 +1,7 @@
 package edu.berkeley.cs;
 
-import com.facebook.LinkBench.GraphStore;
-import com.facebook.LinkBench.Link;
+import com.facebook.LinkBench.*;
 import com.facebook.LinkBench.Node;
-import com.facebook.LinkBench.Phase;
 import org.apache.log4j.Logger;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
@@ -86,7 +84,6 @@ public class LinkStoreNeo4j extends GraphStore {
       LOG.info("Database initialization: " + idIndex.toString());
     }
     LOG.info("Initialization complete.");
-
   }
 
   /**
@@ -123,6 +120,10 @@ public class LinkStoreNeo4j extends GraphStore {
       tx.success();
     }
     return id;
+  }
+
+  @Override public int bulkLoadBatchSize() {
+    return 1024;
   }
 
   @Override public long[] bulkAddNodes(String dbid, List<Node> nodes) throws Exception {
@@ -165,8 +166,10 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public boolean updateNode(String dbid, Node node) throws Exception {
     try (Transaction tx = db.beginTx()) {
       org.neo4j.graphdb.Node neoNode = idIndex.get("id", node.id).getSingle();
-      if (neoNode == null)
+      if (neoNode == null) {
+        tx.failure();
         return false;
+      }
       neoNode.setProperty("id", node.id);
       neoNode.setProperty("data", node.data);
       idIndex.add(neoNode, "id", node.id);
@@ -183,8 +186,10 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public boolean deleteNode(String dbid, int type, long id) throws Exception {
     try (Transaction tx = db.beginTx()) {
       org.neo4j.graphdb.Node neoNode = idIndex.get("id", id).getSingle();
-      if (neoNode == null)
+      if (neoNode == null) {
+        tx.failure();
         return false;
+      }
       for (Relationship relationship : neoNode.getRelationships()) {
         relationship.delete();
       }
@@ -217,6 +222,7 @@ public class LinkStoreNeo4j extends GraphStore {
       final org.neo4j.graphdb.Node src = idIndex.get("id", a.id1).getSingle();
       final org.neo4j.graphdb.Node dst = idIndex.get("id", a.id2).getSingle();
       if (src == null || dst == null) {
+        tx.failure();
         return false;
       }
       Relationship rel = src.createRelationshipTo(dst, linkTypeToRelationshipType(a.link_type));
@@ -225,6 +231,29 @@ public class LinkStoreNeo4j extends GraphStore {
       tx.success();
     }
     return true;
+  }
+
+  @Override public void addBulkLinks(String dbid, List<Link> links, boolean noinverse)
+    throws Exception {
+    try (Transaction tx = db.beginTx()) {
+      for (Link a : links) {
+        final org.neo4j.graphdb.Node src = idIndex.get("id", a.id1).getSingle();
+        final org.neo4j.graphdb.Node dst = idIndex.get("id", a.id2).getSingle();
+        if (src == null || dst == null) {
+          tx.failure();
+          return;
+        }
+        Relationship rel = src.createRelationshipTo(dst, linkTypeToRelationshipType(a.link_type));
+        rel.setProperty("time", a.time);
+        rel.setProperty("data", a.data);
+      }
+      tx.success();
+    }
+  }
+
+  @Override public void addBulkCounts(String dbid, List<LinkCount> a)
+    throws Exception {
+    // Do nothing.
   }
 
   /**
@@ -239,8 +268,10 @@ public class LinkStoreNeo4j extends GraphStore {
     boolean noinverse, boolean expunge) throws Exception {
     try (Transaction tx = db.beginTx()) {
       final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
-      if (src == null)
+      if (src == null) {
+        tx.failure();
         return false;
+      }
       Iterable<Relationship> rels =
         src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
       for (Relationship rel : rels) {
@@ -267,6 +298,7 @@ public class LinkStoreNeo4j extends GraphStore {
       final org.neo4j.graphdb.Node src = idIndex.get("id", a.id1).getSingle();
       final org.neo4j.graphdb.Node dst = idIndex.get("id", a.id2).getSingle();
       if (src == null || dst == null) {
+        tx.failure();
         return false;
       }
       Iterable<Relationship> rels =
@@ -279,7 +311,7 @@ public class LinkStoreNeo4j extends GraphStore {
           return true;
         }
       }
-      tx.success();
+      tx.failure();
     }
     return true;
   }

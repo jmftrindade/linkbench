@@ -1,9 +1,6 @@
 package edu.berkeley.cs;
 
-import com.facebook.LinkBench.GraphStore;
-import com.facebook.LinkBench.Link;
-import com.facebook.LinkBench.Node;
-import com.facebook.LinkBench.Phase;
+import com.facebook.LinkBench.*;
 import com.thinkaurelius.titan.core.PropertyKey;
 import com.thinkaurelius.titan.core.TitanFactory;
 import com.thinkaurelius.titan.core.TitanGraph;
@@ -142,6 +139,10 @@ public class LinkStoreTitan extends GraphStore {
     return id;
   }
 
+  @Override public int bulkLoadBatchSize() {
+    return 1024;
+  }
+
   @Override public long[] bulkAddNodes(String dbid, List<Node> nodes) throws Exception {
     TitanTransaction tx = g.buildTransaction().start();
     long ids[] = new long[nodes.size()];
@@ -249,6 +250,30 @@ public class LinkStoreTitan extends GraphStore {
     e.setProperty("edge-data", new String(a.data));
     tx.commit();
     return true;
+  }
+
+  @Override public void addBulkLinks(String dbid, List<Link> links, boolean noinverse)
+    throws Exception {
+    TitanTransaction tx = g.buildTransaction().start();
+    for (Link a : links) {
+      Vertex src, dst;
+      try {
+        src = tx.getVertices("iid", a.id1).iterator().next();
+        dst = tx.getVertices("iid", a.id2).iterator().next();
+      } catch (NoSuchElementException e) {
+        tx.rollback();
+        return;
+      }
+      Edge e = tx.addEdge(null, src, dst, String.valueOf(a.link_type));
+      e.setProperty("time", a.time);
+      e.setProperty("edge-data", new String(a.data));
+    }
+    tx.commit();
+  }
+
+  @Override public void addBulkCounts(String dbid, List<LinkCount> a)
+    throws Exception {
+    // Do nothing.
   }
 
   /**
