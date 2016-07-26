@@ -15,20 +15,19 @@
  */
 package com.facebook.LinkBench;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.Random;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import com.facebook.LinkBench.distributions.LogNormalDistribution;
 import com.facebook.LinkBench.generators.DataGenerator;
 import com.facebook.LinkBench.stats.LatencyStats;
 import com.facebook.LinkBench.stats.SampledStats;
 import com.facebook.LinkBench.util.ClassLoadUtil;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Properties;
+import java.util.Random;
 
 /**
  * Load class for generating node data
@@ -127,6 +126,7 @@ public class NodeLoader implements Runnable {
     }
 
     int bulkLoadBatchSize = nodeStore.bulkLoadBatchSize();
+    logger.info("Node batch size = " + bulkLoadBatchSize);
     ArrayList<Node> nodeLoadBuffer = new ArrayList<Node>(bulkLoadBatchSize);
 
     long maxId = ConfigUtil.getLong(props, Config.MAX_ID);
