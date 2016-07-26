@@ -75,11 +75,16 @@ public class LinkStoreTitan extends GraphStore {
       if (currentPhase == Phase.LOAD) {
         LOG.info("Creating index on iid...");
         TitanManagement mgmt = g.getManagementSystem();
+        int linkTypeCount = ConfigUtil.getInt(p, Config.LINK_TYPE_COUNT, 1);
+        LOG.info("Link type count is " + linkTypeCount);
         PropertyKey iid = mgmt.makePropertyKey("iid").dataType(Long.class).make();
         mgmt.makePropertyKey("node-data").dataType(String.class).make();
         mgmt.makePropertyKey("edge-data").dataType(String.class).make();
         mgmt.makePropertyKey("time").dataType(Long.class).make();
         mgmt.buildIndex("iid", Vertex.class).addKey(iid).unique().buildCompositeIndex();
+        for (int i = 0; i < linkTypeCount; i++) {
+          mgmt.makeEdgeLabel(String.valueOf(DEFAULT_LINK_TYPE + i)).unidirected().make();
+        }
         mgmt.commit();
         LOG.info("Index creation successful.");
       }
