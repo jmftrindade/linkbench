@@ -79,6 +79,9 @@ public class LinkStoreTitan extends GraphStore {
         LOG.info("Creating index on iid...");
         TitanManagement mgmt = g.getManagementSystem();
         PropertyKey iid = mgmt.makePropertyKey("iid").dataType(Long.class).make();
+        mgmt.makePropertyKey("node-data").dataType(String.class).make();
+        mgmt.makePropertyKey("edge-data").dataType(String.class).make();
+        mgmt.makePropertyKey("time").dataType(Long.class).make();
         mgmt.buildIndex("iid", Vertex.class).addKey(iid).unique().buildCompositeIndex();
         mgmt.commit();
         LOG.info("Index creation successful.");
@@ -95,6 +98,24 @@ public class LinkStoreTitan extends GraphStore {
    */
   @Override public void resetNodeStore(String dbid, long startID) throws Exception {
     idGenerator.set(startID);
+  }
+
+  byte[] getNodeData(Vertex v) {
+    String data = v.getProperty("node-data");
+    return data.getBytes();
+  }
+
+  long getNodeId(Vertex v) {
+    return v.getProperty("iid");
+  }
+
+  byte[] getEdgeData(Edge e) {
+    String data = e.getProperty("edge-data");
+    return data.getBytes();
+  }
+
+  long getEdgeTime(Edge e) {
+    return (long) e.getProperty("time");
   }
 
   /**
@@ -116,7 +137,7 @@ public class LinkStoreTitan extends GraphStore {
     Vertex v = tx.addVertex(null);
     long id = idGenerator.getAndIncrement();
     v.setProperty("iid", id);
-    v.setProperty("data", node.data);
+    v.setProperty("node-data", new String(node.data));
     tx.commit();
     return id;
   }
@@ -125,11 +146,11 @@ public class LinkStoreTitan extends GraphStore {
     TitanTransaction tx = g.buildTransaction().start();
     long ids[] = new long[nodes.size()];
     int i = 0;
-    for (Node node: nodes) {
+    for (Node node : nodes) {
       long id = idGenerator.getAndIncrement();
       Vertex v = tx.addVertex(null);
       v.setProperty("iid", id);
-      v.setProperty("data", node.data);
+      v.setProperty("node-data", new String(node.data));
       ids[i++] = id;
     }
     tx.commit();
@@ -151,7 +172,7 @@ public class LinkStoreTitan extends GraphStore {
     } catch (NoSuchElementException e) {
       return null;
     }
-    return new Node(id, 0, 0, 0, (byte[]) v.getProperty("data"));
+    return new Node(id, 0, 0, 0, getNodeData(v));
   }
 
   /**
@@ -167,7 +188,7 @@ public class LinkStoreTitan extends GraphStore {
     } catch (NoSuchElementException e) {
       return false;
     }
-    v.setProperty("data", node.data);
+    v.setProperty("node-data", new String(node.data));
     tx.commit();
     return true;
   }
@@ -191,6 +212,7 @@ public class LinkStoreTitan extends GraphStore {
       e.remove();
     }
     v.remove();
+
     tx.commit();
     return true;
   }
@@ -224,7 +246,7 @@ public class LinkStoreTitan extends GraphStore {
     }
     Edge e = tx.addEdge(null, src, dst, String.valueOf(a.link_type));
     e.setProperty("time", a.time);
-    e.setProperty("data", a.data);
+    e.setProperty("edge-data", new String(a.data));
     tx.commit();
     return true;
   }
@@ -281,7 +303,7 @@ public class LinkStoreTitan extends GraphStore {
       if ((long) edge.getVertex(Direction.IN).getProperty("iid") == a.id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(a.link_type)) == 0) {
         edge.setProperty("time", a.time);
-        edge.setProperty("data", a.data);
+        edge.setProperty("edge-data", new String(a.data));
         tx.commit();
         return true;
       }
@@ -307,8 +329,7 @@ public class LinkStoreTitan extends GraphStore {
     for (Edge edge : edges) {
       if ((long) edge.getVertex(Direction.IN).getProperty("iid") == id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
-        return new Link(id1, link_type, id2, (byte) 0, (byte[]) edge.getProperty("data"), 0,
-          (long) edge.getProperty("time"));
+        return new Link(id1, link_type, id2, (byte) 0, getEdgeData(edge), 0, getEdgeTime(edge));
       }
     }
     return null;
@@ -334,8 +355,10 @@ public class LinkStoreTitan extends GraphStore {
     for (Edge edge : edges) {
       if (edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         Vertex dst = edge.getVertex(Direction.IN);
-        links.add(new Link(id1, link_type, (Long) dst.getProperty("iid"), (byte) 0,
-          (byte[]) edge.getProperty("data"), 0, (long) edge.getProperty("time")));
+        long id2 = getNodeId(dst);
+        byte[] data = getEdgeData(edge);
+        long time = getEdgeTime(edge);
+        links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
     }
     Collections.sort(links, linkComparator);
@@ -362,11 +385,11 @@ public class LinkStoreTitan extends GraphStore {
     ArrayList<Link> links = new ArrayList<>();
     for (Edge edge : edges) {
       Vertex dst = edge.getVertex(Direction.IN);
-      long id2 = dst.getProperty("iid");
-      long time = edge.getProperty("time");
+      long time = getEdgeTime(edge);
       if (time >= minTimestamp && time >= maxTimestamp &&
         edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
-        byte[] data = edge.getProperty("data");
+        long id2 = getNodeId(dst);
+        byte[] data = getEdgeData(edge);
         links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
     }
