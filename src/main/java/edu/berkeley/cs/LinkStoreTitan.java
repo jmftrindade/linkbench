@@ -53,6 +53,14 @@ public class LinkStoreTitan extends GraphStore {
         conf = new PropertiesConfiguration(configFile);
         conf.setProperty("storage.cassandra.keyspace", keyspace);
         LOG.info("Setting keyspace to [" + keyspace + "]");
+
+        if (currentPhase == Phase.LOAD) {
+          LOG.info("Enabling bulk loading...");
+          conf.setProperty("storage.batch-loading", true);
+          conf.setProperty("schema.default", "none");
+          conf.setProperty("ids.block-size", 1000000);
+          conf.setProperty("storage.buffer-size", 5120);
+        }
       } catch (ConfigurationException e) {
         LOG.info("Error reading configuration: " + e.getMessage());
       }

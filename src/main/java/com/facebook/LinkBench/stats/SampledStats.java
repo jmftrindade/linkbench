@@ -16,17 +16,16 @@
 package com.facebook.LinkBench.stats;
 
 
+import com.facebook.LinkBench.ConfigUtil;
+import com.facebook.LinkBench.LinkBenchOp;
+import com.facebook.LinkBench.LinkStore;
+import org.apache.log4j.Logger;
+
 import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
-
-import org.apache.log4j.Logger;
-
-import com.facebook.LinkBench.ConfigUtil;
-import com.facebook.LinkBench.LinkBenchOp;
-import com.facebook.LinkBench.LinkStore;
 
 
 /**
@@ -134,7 +133,7 @@ public class SampledStats {
    * @param type
    * @param start
    * @param end
-   * @param startTime_ms
+   * @param sampleStartTime_ms
    * @param nowTime_ms
    */
   private void displayStats(LinkBenchOp type, int start, int end,

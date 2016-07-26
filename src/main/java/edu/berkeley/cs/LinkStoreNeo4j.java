@@ -10,10 +10,7 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.graphdb.index.Index;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class LinkStoreNeo4j extends GraphStore {
@@ -126,6 +123,23 @@ public class LinkStoreNeo4j extends GraphStore {
       tx.success();
     }
     return id;
+  }
+
+  @Override public long[] bulkAddNodes(String dbid, List<Node> nodes) throws Exception {
+    long ids[] = new long[nodes.size()];
+    int i = 0;
+    try (Transaction tx = db.beginTx()) {
+      for (Node node : nodes) {
+        long id = idGenerator.getAndIncrement();
+        org.neo4j.graphdb.Node neoNode = db.createNode();
+        neoNode.setProperty("id", id);
+        neoNode.setProperty("data", node.data);
+        idIndex.add(neoNode, "id", id);
+        ids[i++] = id;
+      }
+      tx.success();
+    }
+    return ids;
   }
 
   /**
