@@ -155,7 +155,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public Node getNode(String dbid, int type, long id) throws Exception {
     org.neo4j.graphdb.Node neoNode;
     try (Transaction tx = db.beginTx()) {
-      neoNode = idIndex.get("id", id).getSingle();
+      neoNode = IteratorUtil.firstOrNull(idIndex.get("id", id).iterator());
       if (neoNode != null) {
         tx.success();
         return new Node(id, 0, 0, 0, (byte[]) neoNode.getProperty("data"));
