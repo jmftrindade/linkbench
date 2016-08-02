@@ -7,6 +7,7 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.helpers.collection.IteratorUtil;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -171,7 +172,7 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public boolean updateNode(String dbid, Node node) throws Exception {
     try (Transaction tx = db.beginTx()) {
-      org.neo4j.graphdb.Node neoNode = idIndex.get("id", node.id).getSingle();
+      org.neo4j.graphdb.Node neoNode = IteratorUtil.firstOrNull(idIndex.get("id", node.id).iterator());
       if (neoNode == null) {
         tx.failure();
         return false;
@@ -191,7 +192,8 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public boolean deleteNode(String dbid, int type, long id) throws Exception {
     try (Transaction tx = db.beginTx()) {
-      org.neo4j.graphdb.Node neoNode = idIndex.get("id", id).getSingle();
+
+      org.neo4j.graphdb.Node neoNode = IteratorUtil.firstOrNull(idIndex.get("id", id).iterator());
       if (neoNode == null) {
         tx.failure();
         return false;
@@ -225,8 +227,8 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public boolean addLink(String dbid, Link a, boolean noinverse) throws Exception {
     try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = idIndex.get("id", a.id1).getSingle();
-      final org.neo4j.graphdb.Node dst = idIndex.get("id", a.id2).getSingle();
+      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", a.id1).iterator());
+      final org.neo4j.graphdb.Node dst = IteratorUtil.firstOrNull(idIndex.get("id", a.id2).iterator());
       if (src == null || dst == null) {
         tx.failure();
         return false;
@@ -243,8 +245,8 @@ public class LinkStoreNeo4j extends GraphStore {
     throws Exception {
     try (Transaction tx = db.beginTx()) {
       for (Link a : links) {
-        final org.neo4j.graphdb.Node src = idIndex.get("id", a.id1).getSingle();
-        final org.neo4j.graphdb.Node dst = idIndex.get("id", a.id2).getSingle();
+        final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", a.id1).iterator());
+        final org.neo4j.graphdb.Node dst = IteratorUtil.firstOrNull(idIndex.get("id", a.id2).iterator());
         if (src == null || dst == null) {
           tx.failure();
           return;
@@ -272,7 +274,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public boolean deleteLink(String dbid, long id1, long link_type, long id2,
     boolean noinverse, boolean expunge) throws Exception {
     try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
+      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
       if (src == null) {
         tx.failure();
         return false;
@@ -300,8 +302,8 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public boolean updateLink(String dbid, Link a, boolean noinverse) throws Exception {
     try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = idIndex.get("id", a.id1).getSingle();
-      final org.neo4j.graphdb.Node dst = idIndex.get("id", a.id2).getSingle();
+      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", a.id1).iterator());
+      final org.neo4j.graphdb.Node dst = IteratorUtil.firstOrNull(idIndex.get("id", a.id2).iterator());
       if (src == null || dst == null) {
         tx.failure();
         return false;
@@ -329,7 +331,7 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public Link getLink(String dbid, long id1, long link_type, long id2) throws Exception {
     try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
+      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
       if (src == null) {
         tx.failure();
         return null;
@@ -359,7 +361,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public Link[] getLinkList(String dbid, long id1, long link_type) throws Exception {
     ArrayList<Link> links = new ArrayList<>();
     try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
+      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
       if (src == null) {
         tx.failure();
         return null;
@@ -389,7 +391,7 @@ public class LinkStoreNeo4j extends GraphStore {
     ArrayList<Link> links = new ArrayList<>();
 
     try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
+      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
       if (src == null) {
         tx.failure();
         return null;
@@ -415,7 +417,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public long countLinks(String dbid, long id1, long link_type) throws Exception {
     long count = 0;
     try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
+      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
       if (src == null) {
         tx.failure();
         return 0;
