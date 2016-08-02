@@ -84,6 +84,11 @@ public class LinkStoreNeo4j extends GraphStore {
       }
       LOG.info("Database initialization: " + idIndex.toString());
     }
+    if (currentPhase == Phase.REQUEST) {
+      long startId = Long.parseLong(p.getProperty("maxid1")) + 1;
+      LOG.info("Request phase: setting startId to " + startId);
+      idGenerator.set(startId);
+    }
     LOG.info("Initialization complete.");
   }
 
