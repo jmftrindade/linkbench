@@ -231,6 +231,8 @@ public class LinkStoreTitan extends GraphStore {
    * Do any cleanup.  After this is called, store won't be reused
    */
   @Override public void close() {
+    if (g.isOpen())
+      g.shutdown();
   }
 
   @Override public void clearErrors(int threadID) {
@@ -280,8 +282,7 @@ public class LinkStoreTitan extends GraphStore {
     tx.commit();
   }
 
-  @Override public void addBulkCounts(String dbid, List<LinkCount> a)
-    throws Exception {
+  @Override public void addBulkCounts(String dbid, List<LinkCount> a) throws Exception {
     // Do nothing.
   }
 
@@ -305,7 +306,7 @@ public class LinkStoreTitan extends GraphStore {
     }
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
     for (Edge edge : edges) {
-      if ((long) edge.getVertex(Direction.IN).getProperty("iid") == id2
+      if (edge != null && (long) edge.getVertex(Direction.IN).getProperty("iid") == id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         edge.remove();
         tx.commit();
@@ -334,7 +335,7 @@ public class LinkStoreTitan extends GraphStore {
     }
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
     for (Edge edge : edges) {
-      if ((long) edge.getVertex(Direction.IN).getProperty("iid") == a.id2
+      if (edge != null && (long) edge.getVertex(Direction.IN).getProperty("iid") == a.id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(a.link_type)) == 0) {
         edge.setProperty("time", a.time);
         edge.setProperty("edge-data", new String(a.data));
@@ -361,7 +362,7 @@ public class LinkStoreTitan extends GraphStore {
     }
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
     for (Edge edge : edges) {
-      if ((long) edge.getVertex(Direction.IN).getProperty("iid") == id2
+      if (edge != null && (long) edge.getVertex(Direction.IN).getProperty("iid") == id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         return new Link(id1, link_type, id2, (byte) 0, getEdgeData(edge), 0, getEdgeTime(edge));
       }
@@ -387,7 +388,7 @@ public class LinkStoreTitan extends GraphStore {
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
     ArrayList<Link> links = new ArrayList<>();
     for (Edge edge : edges) {
-      if (edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
+      if (edge != null && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         Vertex dst = edge.getVertex(Direction.IN);
         long id2 = getNodeId(dst);
         byte[] data = getEdgeData(edge);
@@ -428,8 +429,8 @@ public class LinkStoreTitan extends GraphStore {
       }
     }
     Collections.sort(links, linkComparator);
-    return links.subList(offset, Math.min(links.size(), offset + limit))
-      .toArray(new Link[Math.min(links.size(), limit)]);
+    List<Link> subList = links.subList(offset, Math.min(links.size(), offset + limit));
+    return subList.toArray(new Link[Math.min(links.size(), limit)]);
   }
 
   @Override public long countLinks(String dbid, long id1, long link_type) throws Exception {
