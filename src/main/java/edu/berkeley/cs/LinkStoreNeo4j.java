@@ -155,10 +155,12 @@ public class LinkStoreNeo4j extends GraphStore {
     org.neo4j.graphdb.Node neoNode;
     try (Transaction tx = db.beginTx()) {
       neoNode = idIndex.get("id", id).getSingle();
+      if (neoNode != null) {
+        tx.success();
+        return new Node(id, 0, 0, 0, (byte[]) neoNode.getProperty("data"));
+      }
       tx.success();
     }
-    if (neoNode != null)
-      return new Node(id, 0, 0, 0, (byte[]) neoNode.getProperty("data"));
     return null;
   }
 
