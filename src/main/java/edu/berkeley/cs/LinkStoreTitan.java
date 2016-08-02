@@ -91,6 +91,7 @@ public class LinkStoreTitan extends GraphStore {
         long startId = Long.parseLong(p.getProperty("maxid1")) + 1;
         LOG.info("Request phase: setting startId to " + startId);
         idGenerator.set(startId);
+        System.exit(0);
       }
     } else {
       LOG.info("Connections already initialized; skipping initialization.");
