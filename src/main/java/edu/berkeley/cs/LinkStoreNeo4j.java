@@ -152,7 +152,11 @@ public class LinkStoreNeo4j extends GraphStore {
    * @return null if not found, a Node with all fields filled in otherwise
    */
   @Override public Node getNode(String dbid, int type, long id) throws Exception {
-    org.neo4j.graphdb.Node neoNode = idIndex.get("id", id).getSingle();
+    org.neo4j.graphdb.Node neoNode;
+    try (Transaction tx = db.beginTx()) {
+      neoNode = idIndex.get("id", id).getSingle();
+      tx.success();
+    }
     if (neoNode != null)
       return new Node(id, 0, 0, 0, (byte[]) neoNode.getProperty("data"));
     return null;
@@ -251,8 +255,7 @@ public class LinkStoreNeo4j extends GraphStore {
     }
   }
 
-  @Override public void addBulkCounts(String dbid, List<LinkCount> a)
-    throws Exception {
+  @Override public void addBulkCounts(String dbid, List<LinkCount> a) throws Exception {
     // Do nothing.
   }
 
@@ -323,16 +326,22 @@ public class LinkStoreNeo4j extends GraphStore {
    * @throws Exception
    */
   @Override public Link getLink(String dbid, long id1, long link_type, long id2) throws Exception {
-    final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
-    if (src == null)
-      return null;
-    Iterable<Relationship> rels =
-      src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
-    for (Relationship rel : rels) {
-      if ((long) rel.getEndNode().getProperty("id") == id2) {
-        return new Link(id1, link_type, id2, (byte) 0, (byte[]) rel.getProperty("data"), 0,
-          (long) rel.getProperty("time"));
+    try (Transaction tx = db.beginTx()) {
+      final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
+      if (src == null) {
+        tx.failure();
+        return null;
       }
+      Iterable<Relationship> rels =
+        src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
+
+      for (Relationship rel : rels) {
+        if ((long) rel.getEndNode().getProperty("id") == id2) {
+          return new Link(id1, link_type, id2, (byte) 0, (byte[]) rel.getProperty("data"), 0,
+            (long) rel.getProperty("time"));
+        }
+      }
+      tx.success();
     }
     return null;
   }
@@ -346,15 +355,20 @@ public class LinkStoreNeo4j extends GraphStore {
    * @throws Exception
    */
   @Override public Link[] getLinkList(String dbid, long id1, long link_type) throws Exception {
-    final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
-    if (src == null)
-      return null;
-    Iterable<Relationship> rels =
-      src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
     ArrayList<Link> links = new ArrayList<>();
-    for (Relationship rel : rels) {
-      links.add(new Link(id1, link_type, (long) rel.getEndNode().getProperty("id"), (byte) 0,
-        (byte[]) rel.getProperty("data"), 0, (long) rel.getProperty("time")));
+    try (Transaction tx = db.beginTx()) {
+      final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
+      if (src == null) {
+        tx.failure();
+        return null;
+      }
+      Iterable<Relationship> rels =
+        src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
+      for (Relationship rel : rels) {
+        links.add(new Link(id1, link_type, (long) rel.getEndNode().getProperty("id"), (byte) 0,
+          (byte[]) rel.getProperty("data"), 0, (long) rel.getProperty("time")));
+      }
+      tx.success();
     }
     Collections.sort(links, linkComparator);
     return links.toArray(new Link[links.size()]);
@@ -370,35 +384,46 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public Link[] getLinkList(String dbid, long id1, long link_type, long minTimestamp,
     long maxTimestamp, int offset, int limit) throws Exception {
-    final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
-    if (src == null)
-      return null;
-    Iterable<Relationship> rels =
-      src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
     ArrayList<Link> links = new ArrayList<>();
-    byte unused = 0;
-    for (Relationship rel : rels) {
-      long id2 = (long) rel.getEndNode().getProperty("id");
-      long time = (long) rel.getProperty("time");
-      if (time >= minTimestamp && time <= maxTimestamp) {
-        links.add(new Link(id1, link_type, id2, unused, (byte[]) rel.getProperty("data"), 0, time));
-      }
-    }
-    Collections.sort(links, linkComparator);
 
+    try (Transaction tx = db.beginTx()) {
+      final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
+      if (src == null) {
+        tx.failure();
+        return null;
+      }
+      Iterable<Relationship> rels =
+        src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
+      byte unused = 0;
+      for (Relationship rel : rels) {
+        long id2 = (long) rel.getEndNode().getProperty("id");
+        long time = (long) rel.getProperty("time");
+        if (time >= minTimestamp && time <= maxTimestamp) {
+          links.add(new Link(id1, link_type, id2, unused, (byte[]) rel.getProperty("data"), 0, time));
+        }
+      }
+      tx.success();
+    }
+
+    Collections.sort(links, linkComparator);
     return links.subList(offset, Math.min(links.size(), offset + limit))
       .toArray(new Link[Math.min(links.size(), limit)]);
   }
 
   @Override public long countLinks(String dbid, long id1, long link_type) throws Exception {
-    final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
-    if (src == null)
-      return 0;
-    Iterable<Relationship> rels =
-      src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
     long count = 0;
-    for (Relationship ignored : rels) {
-      count++;
+    try (Transaction tx = db.beginTx()) {
+      final org.neo4j.graphdb.Node src = idIndex.get("id", id1).getSingle();
+      if (src == null) {
+        tx.failure();
+        return 0;
+      }
+      Iterable<Relationship> rels =
+        src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
+      for (Relationship ignored : rels) {
+        count++;
+      }
+      tx.success();
     }
     return count;
   }
