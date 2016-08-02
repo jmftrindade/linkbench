@@ -370,8 +370,8 @@ public class LinkBenchDriver {
     Random masterRandom = createMasterRNG(props, Config.REQUEST_RANDOM_SEED);
 
     // create requesters
-    Stores stores = initStores();
     for (int i = 0; i < nrequesters; i++) {
+      Stores stores = initStores();
       LinkBenchRequest l =
         new LinkBenchRequest(stores.linkStore, stores.nodeStore, props, latencyStats, csvStreamFile,
           progress, new Random(masterRandom.nextLong()), i, nrequesters);
