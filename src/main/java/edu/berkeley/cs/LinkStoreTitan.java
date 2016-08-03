@@ -390,6 +390,7 @@ public class LinkStoreTitan extends GraphStore {
     for (Edge edge : edges) {
       if (edge != null && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         Vertex dst = edge.getVertex(Direction.IN);
+        if (dst == null) continue;
         long id2 = getNodeId(dst);
         byte[] data = getEdgeData(edge);
         long time = getEdgeTime(edge);

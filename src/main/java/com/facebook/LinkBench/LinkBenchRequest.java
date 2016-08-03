@@ -15,17 +15,6 @@
  */
 package com.facebook.LinkBench;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import com.facebook.LinkBench.RealDistribution.DistributionType;
 import com.facebook.LinkBench.distributions.AccessDistributions;
 import com.facebook.LinkBench.distributions.AccessDistributions.AccessDistribution;
@@ -36,6 +25,12 @@ import com.facebook.LinkBench.generators.DataGenerator;
 import com.facebook.LinkBench.stats.LatencyStats;
 import com.facebook.LinkBench.stats.SampledStats;
 import com.facebook.LinkBench.util.ClassLoadUtil;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
+import java.io.PrintStream;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 public class LinkBenchRequest implements Runnable {
@@ -757,7 +752,6 @@ public class LinkBenchRequest implements Runnable {
                          e.getMessage(), e);
         aborted = true;
       }
-      closeStores();
       return;
     }
 
@@ -850,17 +844,6 @@ public class LinkBenchRequest implements Runnable {
                        " not found = " + numnotfound +
                        " history queries = " + numHistoryQueries + "/" +
                                    stats.getCount(LinkBenchOp.GET_LINKS_LIST));
-    closeStores();
-  }
-
-  /**
-   * Close datastores before finishing
-   */
-  private void closeStores() {
-    linkStore.close();
-    if (nodeStore != null && nodeStore != linkStore) {
-      nodeStore.close();
-    }
   }
 
   private void displayStats(long lastStatDisplay_ms, long now_ms) {

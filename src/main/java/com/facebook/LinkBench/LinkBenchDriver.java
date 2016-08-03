@@ -349,6 +349,16 @@ public class LinkBenchDriver {
     }
   }
 
+  /**
+   * Close datastores before finishing
+   */
+  private void closeStores(Stores stores) {
+    stores.linkStore.close();
+    if (stores.nodeStore != null && stores.nodeStore != stores.linkStore) {
+      stores.nodeStore.close();
+    }
+  }
+
   void sendrequests() throws IOException, InterruptedException, Throwable {
 
     if (!doRequest) {
@@ -380,6 +390,8 @@ public class LinkBenchDriver {
     progress.startTimer();
     // run requesters
     concurrentExec(requesters);
+    closeStores(stores);
+
     long finishTime = System.currentTimeMillis();
     // Calculate duration accounting for warmup time
     long benchmarkTime = finishTime - progress.getBenchmarkStartTime();
