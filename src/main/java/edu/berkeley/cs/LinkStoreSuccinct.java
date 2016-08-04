@@ -6,17 +6,21 @@ import com.facebook.LinkBench.Node;
 import com.facebook.LinkBench.Phase;
 import edu.berkeley.cs.zipg.GraphQueryAggregatorService;
 import edu.berkeley.cs.zipg.ThriftAssoc;
+import org.apache.log4j.Logger;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class LinkStoreSuccinct extends GraphStore {
 
+  private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
   private GraphQueryAggregatorService.Client client;
   private TTransport transport;
+  private AtomicLong idGenerator = new AtomicLong(1L);
 
   // Helper methods
   private Link thriftAssocToLink(ThriftAssoc a) {
@@ -35,9 +39,16 @@ public class LinkStoreSuccinct extends GraphStore {
     String hostname = p.getProperty("hostname", "localhost");
     int port = Integer.parseInt(p.getProperty("port", "11001"));
 
+    LOG.info("Attempting to connect to thrift server @ " + hostname + ":" + port);
     transport = new TSocket(hostname, port);
     client = new GraphQueryAggregatorService.Client(new TBinaryProtocol(transport));
     transport.open();
+    LOG.info("Connection successful.");
+    if (currentPhase == Phase.REQUEST) {
+      long startId = Long.parseLong(p.getProperty("maxid1")) + 1;
+      LOG.info("Request phase: setting startId to " + startId);
+      idGenerator.set(startId);
+    }
   }
 
   /**
@@ -67,7 +78,8 @@ public class LinkStoreSuccinct extends GraphStore {
    * @return the id allocated for the node
    */
   @Override public long addNode(String dbid, Node node) throws Exception {
-    return client.addNode(node.id, new String(node.data));
+    long id = idGenerator.getAndAdd(1L);
+    return client.addNode(id, new String(node.data));
   }
 
   /**
