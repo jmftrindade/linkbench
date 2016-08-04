@@ -664,8 +664,10 @@ public class LinkBenchRequest implements Runnable {
 
       long timetaken2 = (endtime2 - starttime)/1000;
 
+      String stackTrace = Arrays.toString(e.getStackTrace());
       logger.error(type.displayName() + " error " +
-                         e.getMessage(), e);
+                         e.getMessage() + " : " + stackTrace, e);
+
       if (recordStats) {
         stats.addStats(type, timetaken2, true);
       }
