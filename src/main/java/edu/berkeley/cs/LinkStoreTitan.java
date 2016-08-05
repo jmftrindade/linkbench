@@ -182,13 +182,17 @@ public class LinkStoreTitan extends GraphStore {
    * @return null if not found, a Node with all fields filled in otherwise
    */
   @Override public Node getNode(String dbid, int type, long id) throws Exception {
+    TitanTransaction tx = g.buildTransaction().start();
     Vertex v;
     try {
       v = g.getVertices("iid", id).iterator().next();
     } catch (NoSuchElementException e) {
+      tx.rollback();
       return null;
     }
-    return new Node(id, 0, 0, 0, getNodeData(v));
+    byte[] data = getNodeData(v);
+    tx.commit();
+    return new Node(id, 0, 0, 0, data);
   }
 
   /**
@@ -360,19 +364,23 @@ public class LinkStoreTitan extends GraphStore {
    * @throws Exception
    */
   @Override public Link getLink(String dbid, long id1, long link_type, long id2) throws Exception {
+    TitanTransaction tx = g.buildTransaction().start();
     Vertex src;
     try {
       src = g.getVertices("iid", id1).iterator().next();
     } catch (NoSuchElementException e) {
+      tx.rollback();
       return null;
     }
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
     for (Edge edge : edges) {
       if (edge != null && (long) edge.getVertex(Direction.IN).getProperty("iid") == id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
+        tx.commit();
         return new Link(id1, link_type, id2, (byte) 0, getEdgeData(edge), 0, getEdgeTime(edge));
       }
     }
+    tx.rollback();
     return null;
   }
 
@@ -385,10 +393,12 @@ public class LinkStoreTitan extends GraphStore {
    * @throws Exception
    */
   @Override public Link[] getLinkList(String dbid, long id1, long link_type) throws Exception {
+    TitanTransaction tx = g.buildTransaction().start();
     Vertex src;
     try {
       src = g.getVertices("iid", id1).iterator().next();
     } catch (NoSuchElementException e) {
+      tx.rollback();
       return null;
     }
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
@@ -403,6 +413,7 @@ public class LinkStoreTitan extends GraphStore {
         links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
     }
+    tx.commit();
     Collections.sort(links, linkComparator);
     return links.toArray(new Link[links.size()]);
   }
@@ -417,10 +428,12 @@ public class LinkStoreTitan extends GraphStore {
    */
   @Override public Link[] getLinkList(String dbid, long id1, long link_type, long minTimestamp,
     long maxTimestamp, int offset, int limit) throws Exception {
+    TitanTransaction tx = g.buildTransaction().start();
     Vertex src;
     try {
       src = g.getVertices("iid", id1).iterator().next();
     } catch (NoSuchElementException e) {
+      tx.rollback();
       return null;
     }
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
@@ -438,14 +451,17 @@ public class LinkStoreTitan extends GraphStore {
     }
     Collections.sort(links, linkComparator);
     List<Link> subList = links.subList(offset, Math.min(links.size(), offset + limit));
+    tx.commit();
     return subList.toArray(new Link[Math.min(links.size(), limit)]);
   }
 
   @Override public long countLinks(String dbid, long id1, long link_type) throws Exception {
+    TitanTransaction tx = g.buildTransaction().start();
     Vertex src;
     try {
       src = g.getVertices("iid", id1).iterator().next();
     } catch (NoSuchElementException e) {
+      tx.rollback();
       return 0;
     }
     long count = 0;
@@ -455,6 +471,7 @@ public class LinkStoreTitan extends GraphStore {
         count++;
       }
     }
+    tx.commit();
     return count;
   }
 }
