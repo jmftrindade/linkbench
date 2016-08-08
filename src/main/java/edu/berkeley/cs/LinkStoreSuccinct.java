@@ -43,6 +43,7 @@ public class LinkStoreSuccinct extends GraphStore {
     transport = new TSocket(hostname, port);
     client = new GraphQueryAggregatorService.Client(new TBinaryProtocol(transport));
     transport.open();
+    client.connect_to_aggregators();
     LOG.info("Connection successful.");
     if (currentPhase == Phase.REQUEST) {
       long startId = Long.parseLong(p.getProperty("nodeidoffset")) + 1;
