@@ -88,7 +88,7 @@ public class LinkStoreTitan extends GraphStore {
         mgmt.commit();
         LOG.info("Index creation successful.");
       } else {
-        long startId = Long.parseLong(p.getProperty("maxid1")) + 1;
+        long startId = Long.parseLong(p.getProperty("nodeidoffset")) + 1;
         LOG.info("Request phase: setting startId to " + startId);
         idGenerator.set(startId);
       }
