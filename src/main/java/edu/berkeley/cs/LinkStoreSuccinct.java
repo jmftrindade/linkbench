@@ -45,7 +45,7 @@ public class LinkStoreSuccinct extends GraphStore {
     transport.open();
     LOG.info("Connection successful.");
     if (currentPhase == Phase.REQUEST) {
-      long startId = Long.parseLong(p.getProperty("maxid1")) + 1;
+      long startId = Long.parseLong(p.getProperty("nodeidoffset")) + 1;
       LOG.info("Request phase: setting startId to " + startId);
       idGenerator.set(startId);
     }
