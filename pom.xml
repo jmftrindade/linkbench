@@ -79,16 +79,6 @@
       <artifactId>slf4j-simple</artifactId>
       <version>1.7.0</version>
     </dependency>
-    <dependency>
-      <groupId>com.thinkaurelius.titan</groupId>
-      <artifactId>titan-cassandra</artifactId>
-      <version>0.5.4</version>
-    </dependency>
-    <dependency>
-      <groupId>amplab</groupId>
-      <artifactId>zipg-client</artifactId>
-      <version>0.1.0</version>
-    </dependency>
   </dependencies>
 
   <profiles>
