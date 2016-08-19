@@ -132,7 +132,9 @@ public class LinkBenchDriver {
 
   // generate instances of LinkStore and NodeStore
   private Stores initStores() throws Exception {
+    logger.info("Initializing LinkStore...");
     LinkStore linkStore = createLinkStore();
+    logger.info("Initializing NodeStore...");
     NodeStore nodeStore = createNodeStore(linkStore);
 
     return new Stores(linkStore, nodeStore);
@@ -370,8 +372,12 @@ public class LinkBenchDriver {
     Random masterRandom = createMasterRNG(props, Config.REQUEST_RANDOM_SEED);
 
     // create requesters
+    logger.info("Initializing stores...");
     Stores stores = initStores();
+    logger.info("Initialization complete.");
     for (int i = 0; i < nrequesters; i++) {
+      logger.info("Assigning linkstore " + stores.linkStore + " and nodestore " + stores.nodeStore
+        + " to requester " + i);
       LinkBenchRequest l =
         new LinkBenchRequest(stores.linkStore, stores.nodeStore, props, latencyStats, csvStreamFile,
           progress, new Random(masterRandom.nextLong()), i, nrequesters);
