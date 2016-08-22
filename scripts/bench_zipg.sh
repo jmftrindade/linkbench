@@ -18,7 +18,7 @@ function setup() {
 echo "Copying benchmark directory"
 $sbin/copy-dir $sbin/../
 
-for num_threads in 1 2 4 8 16 32 64; do
+for num_threads in 64; do
   setup $1
   $sbin/bench_on_clients.sh $dataset $num_threads
 done
