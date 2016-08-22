@@ -658,15 +658,13 @@ public class LinkBenchRequest implements Runnable {
       }
 
       return true;
-    } catch (Throwable e){//Catch exception if any
+    } catch (Exception e){//Catch exception if any
 
       long endtime2 = System.nanoTime();
 
       long timetaken2 = (endtime2 - starttime)/1000;
 
-      String stackTrace = Arrays.toString(e.getStackTrace());
-      logger.error(type.displayName() + " error " +
-                         e.getMessage() + " : " + stackTrace, e);
+      logger.error(type.displayName() + " error " + e.getMessage(), e);
 
       if (recordStats) {
         stats.addStats(type, timetaken2, true);
