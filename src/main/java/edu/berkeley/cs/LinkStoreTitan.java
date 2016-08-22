@@ -112,10 +112,11 @@ public class LinkStoreTitan extends GraphStore {
   }
 
   long getNodeId(Vertex v) {
-    if (v == null) {
+    try {
+      return v.getProperty("iid");
+    } catch (NullPointerException e) {
       return -1;
     }
-    return v.getProperty("iid");
   }
 
   byte[] getEdgeData(Edge e) {
@@ -208,6 +209,7 @@ public class LinkStoreTitan extends GraphStore {
     } catch (NoSuchElementException e) {
       return false;
     }
+    v.setProperty("iid", node.id);
     v.setProperty("node-data", new String(node.data));
     tx.commit();
     return true;
@@ -406,7 +408,6 @@ public class LinkStoreTitan extends GraphStore {
     for (Edge edge : edges) {
       if (edge != null && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         Vertex dst = edge.getVertex(Direction.IN);
-        if (dst == null) continue;
         long id2 = getNodeId(dst);
         byte[] data = getEdgeData(edge);
         long time = getEdgeTime(edge);
@@ -440,7 +441,6 @@ public class LinkStoreTitan extends GraphStore {
     ArrayList<Link> links = new ArrayList<>();
     for (Edge edge : edges) {
       Vertex dst = edge.getVertex(Direction.IN);
-      if (dst == null) continue;
       long time = getEdgeTime(edge);
       if (time >= minTimestamp && time >= maxTimestamp &&
         edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
