@@ -209,7 +209,6 @@ public class LinkStoreTitan extends GraphStore {
     } catch (NoSuchElementException e) {
       return false;
     }
-    v.setProperty("iid", node.id);
     v.setProperty("node-data", new String(node.data));
     tx.commit();
     return true;
