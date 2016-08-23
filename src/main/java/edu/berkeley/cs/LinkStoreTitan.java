@@ -5,6 +5,8 @@ import com.thinkaurelius.titan.core.PropertyKey;
 import com.thinkaurelius.titan.core.TitanFactory;
 import com.thinkaurelius.titan.core.TitanGraph;
 import com.thinkaurelius.titan.core.TitanTransaction;
+import com.thinkaurelius.titan.core.schema.ConsistencyModifier;
+import com.thinkaurelius.titan.core.schema.TitanGraphIndex;
 import com.thinkaurelius.titan.core.schema.TitanManagement;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
@@ -91,6 +93,15 @@ public class LinkStoreTitan extends GraphStore {
         long startId = Long.parseLong(p.getProperty("nodeidoffset")) + 1;
         LOG.info("Request phase: setting startId to " + startId);
         idGenerator.set(startId);
+        TitanManagement mgmt = g.getManagementSystem();
+        if (mgmt.containsGraphIndex("iid")) {
+          TitanGraphIndex iidIndex = mgmt.getGraphIndex("iid");
+          mgmt.setConsistency(iidIndex, ConsistencyModifier.LOCK);
+          mgmt.commit();
+        } else {
+          LOG.error("iid is not indexed, terminating.");
+          System.exit(-1);
+        }
       }
     } else {
       LOG.info("Connections already initialized; skipping initialization.");
