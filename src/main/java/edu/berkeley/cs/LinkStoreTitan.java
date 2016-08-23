@@ -25,6 +25,8 @@ public class LinkStoreTitan extends GraphStore {
   private static TitanGraph g = null;
   private AtomicLong idGenerator = new AtomicLong(1L);
   private static Comparator<Link> linkComparator;
+  private final Object requestPhaseLock = new Object();
+  private boolean requestPhaseInitDone = false;
 
   static {
     linkComparator = new Comparator<Link>() {
@@ -90,17 +92,22 @@ public class LinkStoreTitan extends GraphStore {
         mgmt.commit();
         LOG.info("Index creation successful.");
       } else {
-        long startId = Long.parseLong(p.getProperty("nodeidoffset")) + 1;
-        LOG.info("Request phase: setting startId to " + startId);
-        idGenerator.set(startId);
-        TitanManagement mgmt = g.getManagementSystem();
-        if (mgmt.containsGraphIndex("iid")) {
-          TitanGraphIndex iidIndex = mgmt.getGraphIndex("iid");
-          mgmt.setConsistency(iidIndex, ConsistencyModifier.LOCK);
-          mgmt.commit();
-        } else {
-          LOG.error("iid is not indexed, terminating.");
-          System.exit(-1);
+        synchronized (requestPhaseLock) {
+          if (!requestPhaseInitDone) {
+            long startId = Long.parseLong(p.getProperty("nodeidoffset")) + 1;
+            LOG.info("Request phase: setting startId to " + startId);
+            idGenerator.set(startId);
+            TitanManagement mgmt = g.getManagementSystem();
+            if (mgmt.containsGraphIndex("iid")) {
+              TitanGraphIndex iidIndex = mgmt.getGraphIndex("iid");
+              mgmt.setConsistency(iidIndex, ConsistencyModifier.LOCK);
+              mgmt.commit();
+            } else {
+              LOG.error("iid is not indexed, terminating.");
+              System.exit(-1);
+            }
+            requestPhaseInitDone = true;
+          }
         }
       }
     } else {
