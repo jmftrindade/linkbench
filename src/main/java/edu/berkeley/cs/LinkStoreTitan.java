@@ -408,9 +408,9 @@ public class LinkStoreTitan extends GraphStore {
     for (Edge edge : edges) {
       if (edge != null && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         Vertex dst = edge.getVertex(Direction.IN);
-        long id2 = getNodeId(dst);
-        byte[] data = getEdgeData(edge);
-        long time = getEdgeTime(edge);
+        long id2 = dst.getProperty("iid");
+        byte[] data = edge.getProperty("edge-data");
+        long time = edge.getProperty("time");
         links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
     }
@@ -441,11 +441,11 @@ public class LinkStoreTitan extends GraphStore {
     ArrayList<Link> links = new ArrayList<>();
     for (Edge edge : edges) {
       Vertex dst = edge.getVertex(Direction.IN);
-      long time = getEdgeTime(edge);
+      long time = edge.getProperty("time");
       if (time >= minTimestamp && time >= maxTimestamp &&
         edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
-        long id2 = getNodeId(dst);
-        byte[] data = getEdgeData(edge);
+        long id2 = dst.getProperty("iid");
+        byte[] data = edge.getProperty("edge-data");
         links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
     }
