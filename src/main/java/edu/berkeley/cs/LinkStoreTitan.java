@@ -95,18 +95,18 @@ public class LinkStoreTitan extends GraphStore {
             long startId = Long.parseLong(p.getProperty("nodeidoffset")) + 1;
             LOG.info("Request phase: setting startId to " + startId);
             idGenerator.set(startId);
-//            TitanManagement mgmt = g.getManagementSystem();
-//            if (mgmt.containsGraphIndex("iid")) {
-//              LOG.info("Setting consistency to Lock-based.");
-//              TitanGraphIndex iidIndex = mgmt.getGraphIndex("iid");
-//              mgmt.setConsistency(iidIndex, ConsistencyModifier.LOCK);
-//              mgmt.commit();
-//            } else {
-//              LOG.error("iid is not indexed, terminating.");
-//              System.exit(-1);
-//            }
-//            requestPhaseInitDone = true;
-//            LOG.info("Request phase initialization complete.");
+            //            TitanManagement mgmt = g.getManagementSystem();
+            //            if (mgmt.containsGraphIndex("iid")) {
+            //              LOG.info("Setting consistency to Lock-based.");
+            //              TitanGraphIndex iidIndex = mgmt.getGraphIndex("iid");
+            //              mgmt.setConsistency(iidIndex, ConsistencyModifier.LOCK);
+            //              mgmt.commit();
+            //            } else {
+            //              LOG.error("iid is not indexed, terminating.");
+            //              System.exit(-1);
+            //            }
+            //            requestPhaseInitDone = true;
+            //            LOG.info("Request phase initialization complete.");
           } else {
             LOG.info("Request phase initialization already complete.");
           }
@@ -135,8 +135,7 @@ public class LinkStoreTitan extends GraphStore {
     try {
       return v.getProperty("iid");
     } catch (NullPointerException e) {
-      LOG.info("Could not fetch iid for vertex with id " + v.getId() + " : " + e.getMessage());
-      return -1;
+      return (long) v.getId();
     }
   }
 
@@ -145,7 +144,7 @@ public class LinkStoreTitan extends GraphStore {
     try {
       data = e.getProperty("edge-data");
     } catch (NullPointerException ex) {
-      LOG.info("Could not fetch iid for edge with source id " + e.getVertex(Direction.OUT).getId());
+      LOG.info("Could not fetch data for edge with source " + e.getVertex(Direction.OUT).getId());
     }
     if (data == null) {
       return null;
@@ -157,7 +156,7 @@ public class LinkStoreTitan extends GraphStore {
     try {
       return (long) e.getProperty("time");
     } catch (NullPointerException ex) {
-      LOG.info("Could not fetch time for edge with source id " + e.getVertex(Direction.OUT).getId());
+      LOG.info("Could not fetch time for link with source " + e.getVertex(Direction.OUT).getId());
       return -1;
     }
   }
@@ -348,7 +347,7 @@ public class LinkStoreTitan extends GraphStore {
     }
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
     for (Edge edge : edges) {
-      if (edge != null && (long) edge.getVertex(Direction.IN).getProperty("iid") == id2
+      if (getNodeId(edge.getVertex(Direction.IN)) == id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         edge.remove();
         tx.commit();
@@ -377,7 +376,7 @@ public class LinkStoreTitan extends GraphStore {
     }
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
     for (Edge edge : edges) {
-      if (edge != null && (long) edge.getVertex(Direction.IN).getProperty("iid") == a.id2
+      if (getNodeId(edge.getVertex(Direction.IN)) == a.id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(a.link_type)) == 0) {
         edge.setProperty("time", a.time);
         edge.setProperty("edge-data", new String(a.data));
@@ -406,7 +405,7 @@ public class LinkStoreTitan extends GraphStore {
     }
     Iterable<Edge> edges = src.getEdges(Direction.OUT);
     for (Edge edge : edges) {
-      if (edge != null && (long) edge.getVertex(Direction.IN).getProperty("iid") == id2
+      if (getNodeId(edge.getVertex(Direction.IN)) == id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         byte[] data = getEdgeData(edge);
         long time = getEdgeTime(edge);
