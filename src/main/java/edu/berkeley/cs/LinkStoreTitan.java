@@ -99,6 +99,7 @@ public class LinkStoreTitan extends GraphStore {
             idGenerator.set(startId);
             TitanManagement mgmt = g.getManagementSystem();
             if (mgmt.containsGraphIndex("iid")) {
+              LOG.info("Setting consistency to Lock-based.");
               TitanGraphIndex iidIndex = mgmt.getGraphIndex("iid");
               mgmt.setConsistency(iidIndex, ConsistencyModifier.LOCK);
               mgmt.commit();
@@ -107,6 +108,9 @@ public class LinkStoreTitan extends GraphStore {
               System.exit(-1);
             }
             requestPhaseInitDone = true;
+            LOG.info("Request phase initialization complete.");
+          } else {
+            LOG.info("Request phase initialization already complete.");
           }
         }
       }
