@@ -378,8 +378,10 @@ public class LinkStoreTitan extends GraphStore {
     for (Edge edge : edges) {
       if (edge != null && (long) edge.getVertex(Direction.IN).getProperty("iid") == id2
         && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
+        byte[] data = getEdgeData(edge);
+        long time = getEdgeTime(edge);
         tx.commit();
-        return new Link(id1, link_type, id2, (byte) 0, getEdgeData(edge), 0, getEdgeTime(edge));
+        return new Link(id1, link_type, id2, (byte) 0, data, 0, time);
       }
     }
     tx.rollback();
