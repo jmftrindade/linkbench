@@ -158,6 +158,7 @@ public class LinkStoreTitan extends GraphStore {
       return (long) e.getProperty("time");
     } catch (NullPointerException ex) {
       LOG.info("Could not fetch time for edge with source id " + e.getVertex(Direction.OUT).getId());
+      return -1;
     }
   }
 
