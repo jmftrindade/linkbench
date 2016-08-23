@@ -5,8 +5,6 @@ import com.thinkaurelius.titan.core.PropertyKey;
 import com.thinkaurelius.titan.core.TitanFactory;
 import com.thinkaurelius.titan.core.TitanGraph;
 import com.thinkaurelius.titan.core.TitanTransaction;
-import com.thinkaurelius.titan.core.schema.ConsistencyModifier;
-import com.thinkaurelius.titan.core.schema.TitanGraphIndex;
 import com.thinkaurelius.titan.core.schema.TitanManagement;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
@@ -97,18 +95,18 @@ public class LinkStoreTitan extends GraphStore {
             long startId = Long.parseLong(p.getProperty("nodeidoffset")) + 1;
             LOG.info("Request phase: setting startId to " + startId);
             idGenerator.set(startId);
-            TitanManagement mgmt = g.getManagementSystem();
-            if (mgmt.containsGraphIndex("iid")) {
-              LOG.info("Setting consistency to Lock-based.");
-              TitanGraphIndex iidIndex = mgmt.getGraphIndex("iid");
-              mgmt.setConsistency(iidIndex, ConsistencyModifier.LOCK);
-              mgmt.commit();
-            } else {
-              LOG.error("iid is not indexed, terminating.");
-              System.exit(-1);
-            }
-            requestPhaseInitDone = true;
-            LOG.info("Request phase initialization complete.");
+//            TitanManagement mgmt = g.getManagementSystem();
+//            if (mgmt.containsGraphIndex("iid")) {
+//              LOG.info("Setting consistency to Lock-based.");
+//              TitanGraphIndex iidIndex = mgmt.getGraphIndex("iid");
+//              mgmt.setConsistency(iidIndex, ConsistencyModifier.LOCK);
+//              mgmt.commit();
+//            } else {
+//              LOG.error("iid is not indexed, terminating.");
+//              System.exit(-1);
+//            }
+//            requestPhaseInitDone = true;
+//            LOG.info("Request phase initialization complete.");
           } else {
             LOG.info("Request phase initialization already complete.");
           }
@@ -137,12 +135,18 @@ public class LinkStoreTitan extends GraphStore {
     try {
       return v.getProperty("iid");
     } catch (NullPointerException e) {
+      LOG.info("Could not fetch iid for vertex with id " + v.getId() + " : " + e.getMessage());
       return -1;
     }
   }
 
   byte[] getEdgeData(Edge e) {
-    String data = e.getProperty("edge-data");
+    String data = null;
+    try {
+      data = e.getProperty("edge-data");
+    } catch (NullPointerException ex) {
+      LOG.info("Could not fetch iid for edge with source id " + e.getVertex(Direction.OUT).getId());
+    }
     if (data == null) {
       return null;
     }
@@ -150,7 +154,11 @@ public class LinkStoreTitan extends GraphStore {
   }
 
   long getEdgeTime(Edge e) {
-    return (long) e.getProperty("time");
+    try {
+      return (long) e.getProperty("time");
+    } catch (NullPointerException ex) {
+      LOG.info("Could not fetch time for edge with source id " + e.getVertex(Direction.OUT).getId());
+    }
   }
 
   /**
@@ -431,7 +439,7 @@ public class LinkStoreTitan extends GraphStore {
     for (Edge edge : edges) {
       if (edge != null && edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
         Vertex dst = edge.getVertex(Direction.IN);
-        long id2 = dst.getProperty("iid");
+        long id2 = getNodeId(dst);
         byte[] data = getEdgeData(edge);
         long time = edge.getProperty("time");
         links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
@@ -467,7 +475,7 @@ public class LinkStoreTitan extends GraphStore {
       long time = edge.getProperty("time");
       if (time >= minTimestamp && time >= maxTimestamp &&
         edge.getLabel().compareToIgnoreCase(String.valueOf(link_type)) == 0) {
-        long id2 = dst.getProperty("iid");
+        long id2 = getNodeId(dst);
         byte[] data = getEdgeData(edge);
         links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
