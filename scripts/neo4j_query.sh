@@ -17,11 +17,14 @@ query_types=(
   deletenode
 )
 
-read_only=(
-  countlink
-  getlink
-  getlinklist
-  getnode
+mutate=(
+  #addlink
+  #deletelink
+  updatelink
+  #addnode
+  #deletenode
+  updatenode
+  addlink
 )
 
 function qopts() {
@@ -37,7 +40,7 @@ function qopts() {
   echo $QOPTS_
 }
 
-for query_type in ${read_only[@]}; do
+for query_type in ${mutate[@]}; do
   QOPTS=`qopts $query_type`
   $sbin/bench_neo4j.sh $dataset $QOPTS
 done

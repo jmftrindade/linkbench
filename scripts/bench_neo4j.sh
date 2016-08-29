@@ -30,10 +30,17 @@ db_path="/mnt2/neo4j/$dataset"
 page_cache=`du ${db_path}/*store.db* | awk '{ x += $1 } END { printf("%.0f\n", x*1.2/(1024*1024)) }'`
 pc=$(($page_cache>230?230:$page_cache))g
 
-echo "pc=$pc"
+function cache() {
+  echo "Caching data at $db_path"
+  find $db_path/ -name "*store.db*" -type f -exec dd if={} of=/dev/null bs=1M 2>/dev/null \;
+  echo "Caching complete"
+}
 
-for num_threads in 1 2 4 8 16 32 64; do
-  rm $db_path/*lock*
-  rm $db_path/neostore.transaction.db.*
-  $sbin/../bin/linkbench -c $sbin/../config/LinkConfigNeo4j.properties -r -L $sbin/../neo4j.t${num_threads}.p${pc}.q${query_type}.log -Drequesters=${num_threads} -Dpage_cache_size=$pc -Ddb_path=$db_path $QOPTS
+cache
+
+echo "pc=$pc"
+for num_threads in 1 16; do
+  for tuned in "true" "false"; do
+    $sbin/../bin/linkbench -c $sbin/../config/LinkConfigNeo4j.properties -r -L $sbin/../neo4j.t${num_threads}.p${pc}.q${query_type}.o${tuned}.log -Drequesters=${num_threads} -Dpage_cache_size=$pc -Ddb_path=$db_path -Dtuned=$tuned $QOPTS
+  done
 done
