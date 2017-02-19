@@ -3,7 +3,7 @@ package edu.berkeley.cs;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class CommonStats {
-  public static long MAX_SHARD_SIZE = 1024 * 1024 * 1024;
+  public static long MAX_SHARD_SIZE = 2 * 1024 * 1024 * 1024;
 
   public static AtomicLong currentShardSize = new AtomicLong(0L);
   public static AtomicLong shardId = new AtomicLong(0L);
