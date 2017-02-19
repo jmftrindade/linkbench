@@ -55,7 +55,7 @@ public class DataGenLinkStore extends LinkStore {
    */
   @Override public boolean addLink(String dbid, Link link, boolean noinverse) throws Exception {
     int edgeSize = link.data.length + 4 * 8;
-    writer.write(link.id1 + "\t" + CommonStats.getShardId(edgeSize) + "\n");
+    writer.write(link.id1 + "," + CommonStats.getShardId(edgeSize) + "\n");
     return true;
   }
 
