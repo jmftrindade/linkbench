@@ -118,7 +118,7 @@ public class DataGenNodeStore implements NodeStore {
   @Override public boolean updateNode(String dbid, Node node) throws Exception {
     long id = node.id;
     long nodeSize = node.data.length + 8 * 2;
-    writer.write(id + "\t" + CommonStats.getShardId(nodeSize) + "\n");
+    writer.write(id + "," + CommonStats.getShardId(nodeSize) + "\n");
     return true;
   }
 
