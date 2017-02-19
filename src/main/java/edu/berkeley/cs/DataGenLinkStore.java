@@ -23,8 +23,8 @@ public class DataGenLinkStore extends LinkStore {
    */
   @Override public synchronized void initialize(Properties p, Phase currentPhase, int threadId)
     throws Exception {
-    if (writer == null && currentPhase == Phase.LOAD) {
-      this.writer = new BufferedWriter(new FileWriter("data.assoc"));
+    if (writer == null) {
+      this.writer = new BufferedWriter(new FileWriter("link.stats"));
     }
   }
 
@@ -54,16 +54,8 @@ public class DataGenLinkStore extends LinkStore {
    * @throws Exception
    */
   @Override public boolean addLink(String dbid, Link link, boolean noinverse) throws Exception {
-    writer.write(String.valueOf(link.id1));
-    writer.write(" ");
-    writer.write(String.valueOf(link.id2));
-    writer.write(" ");
-    writer.write(String.valueOf(link.link_type));
-    writer.write(" ");
-    writer.write(String.valueOf(link.time));
-    writer.write(" ");
-    writer.write(new String(link.data));
-    writer.write("\n");
+    int edgeSize = link.data.length + 4 * 8;
+    writer.write(link.id1 + "\t" + CommonStats.getShardId(edgeSize) + "\n");
     return true;
   }
 
@@ -96,7 +88,7 @@ public class DataGenLinkStore extends LinkStore {
    * @throws Exception
    */
   @Override public boolean updateLink(String dbid, Link a, boolean noinverse) throws Exception {
-    return false;
+    return addLink(dbid, a, noinverse);
   }
 
   /**

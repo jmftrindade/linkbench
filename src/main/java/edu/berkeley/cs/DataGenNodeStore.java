@@ -26,8 +26,14 @@ public class DataGenNodeStore implements NodeStore {
    */
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws Exception {
-    if (writer == null && currentPhase == Phase.LOAD) {
-      this.writer = new BufferedWriter(new FileWriter("data.node"));
+    if (writer == null) {
+      this.writer = new BufferedWriter(new FileWriter("node.stats"));
+    }
+
+    if (currentPhase == Phase.REQUEST) {
+      long maxid1 = Long.valueOf(p.getProperty("maxid1"));
+      LOG.info("maxid1 = " + maxid1);
+      this.currentId.set(maxid1);
     }
   }
 
@@ -59,7 +65,8 @@ public class DataGenNodeStore implements NodeStore {
    */
   @Override public long addNode(String dbid, Node node) throws Exception {
     long id = currentId.getAndIncrement();
-    writer.write(new String(node.data) + "\n");
+    long nodeSize = node.data.length + 8 * 2;
+    writer.write(id + "\t" + CommonStats.getShardId(nodeSize) + "\n");
     return id;
   }
 
@@ -109,7 +116,10 @@ public class DataGenNodeStore implements NodeStore {
    * @return true if the update was successful, false if not present
    */
   @Override public boolean updateNode(String dbid, Node node) throws Exception {
-    return false;
+    long id = node.id;
+    long nodeSize = node.data.length + 8 * 2;
+    writer.write(id + "\t" + CommonStats.getShardId(nodeSize) + "\n");
+    return true;
   }
 
   /**
