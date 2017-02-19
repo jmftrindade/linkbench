@@ -5,16 +5,12 @@ import com.facebook.LinkBench.NodeStore;
 import com.facebook.LinkBench.Phase;
 import org.apache.log4j.Logger;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class DataGenNodeStore implements NodeStore {
   private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
-  private BufferedWriter writer = null;
   private AtomicLong currentId = new AtomicLong(1L);
 
   /**
@@ -26,14 +22,12 @@ public class DataGenNodeStore implements NodeStore {
    */
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws Exception {
-    if (writer == null) {
-      this.writer = new BufferedWriter(new FileWriter("node.stats"));
-    }
-
     if (currentPhase == Phase.REQUEST) {
       long maxid1 = Long.valueOf(p.getProperty("maxid1"));
       LOG.info("maxid1 = " + maxid1);
       this.currentId.set(maxid1);
+
+      CommonStats.MAX_SHARD_SIZE = Long.valueOf(p.getProperty("max_shard_size", "2147483648"));
     }
   }
 
@@ -66,7 +60,7 @@ public class DataGenNodeStore implements NodeStore {
   @Override public long addNode(String dbid, Node node) throws Exception {
     long id = currentId.getAndIncrement();
     long nodeSize = node.data.length + 8 * 2;
-    writer.write(id + "," + CommonStats.getShardId(nodeSize) + "\n");
+    CommonStats.writer.write(id + "," + CommonStats.getShardId(nodeSize) + "\tn\n");
     return id;
   }
 
@@ -118,7 +112,7 @@ public class DataGenNodeStore implements NodeStore {
   @Override public boolean updateNode(String dbid, Node node) throws Exception {
     long id = node.id;
     long nodeSize = node.data.length + 8 * 2;
-    writer.write(id + "," + CommonStats.getShardId(nodeSize) + "\n");
+    CommonStats.writer.write(id + "," + CommonStats.getShardId(nodeSize) + "\tn\n");
     return true;
   }
 
@@ -142,10 +136,5 @@ public class DataGenNodeStore implements NodeStore {
    * Close the node store and clean up any resources
    */
   @Override public void close() {
-    try {
-      writer.close();
-    } catch (IOException e) {
-      LOG.error("Could not close node writer: " + e.getMessage());
-    }
   }
 }

@@ -5,14 +5,10 @@ import com.facebook.LinkBench.LinkStore;
 import com.facebook.LinkBench.Phase;
 import org.apache.log4j.Logger;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Properties;
 
 public class DataGenLinkStore extends LinkStore {
   private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
-  private BufferedWriter writer = null;
 
   /**
    * initialize the store object
@@ -23,20 +19,12 @@ public class DataGenLinkStore extends LinkStore {
    */
   @Override public synchronized void initialize(Properties p, Phase currentPhase, int threadId)
     throws Exception {
-    if (writer == null) {
-      this.writer = new BufferedWriter(new FileWriter("link.stats"));
-    }
   }
 
   /**
    * Do any cleanup.  After this is called, store won't be reused
    */
   @Override public void close() {
-    try {
-      writer.close();
-    } catch (IOException e) {
-      LOG.error("Could not close link writer: " + e.getMessage());
-    }
   }
 
   @Override public void clearErrors(int threadID) {
@@ -55,7 +43,7 @@ public class DataGenLinkStore extends LinkStore {
    */
   @Override public boolean addLink(String dbid, Link link, boolean noinverse) throws Exception {
     int edgeSize = link.data.length + 4 * 8;
-    writer.write(link.id1 + "," + CommonStats.getShardId(edgeSize) + "\n");
+    CommonStats.writer.write(link.id1 + "," + CommonStats.getShardId(edgeSize) + "\te\n");
     return true;
   }
 
