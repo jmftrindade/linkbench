@@ -17,7 +17,7 @@ uint32_t max = 0;
 double sum = 0.0;
 
 void print_usage(const char* exec) {
-  fprintf(stderr, "Usage: %s [OPTIONS] operations-file\n\n", exec);
+  fprintf(stderr, "Usage: %s [OPTIONS] operations-trace\n\n", exec);
   fprintf(stderr, "OPTIONS:\n");
   fprintf(stderr, "\t-i Intervals for computing statistics\n");
   fprintf(stderr, "\t-n Number of nodes initially present in database\n");
@@ -26,6 +26,7 @@ void print_usage(const char* exec) {
 void init_ops(uint64_t init_nodes) {
   for (uint64_t i = 1; i <= init_nodes; i++)
     ops[i].insert(-1);
+  fprintf(stderr, "Assigned shards for initial nodes;\t");
 }
 
 void process_ops_file(std::ifstream& in, size_t op_cnt) {
