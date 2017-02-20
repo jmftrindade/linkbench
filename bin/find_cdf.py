@@ -5,7 +5,7 @@ import sys
 
 def findcdf(data):
   cdf = []
-  for i in xrange(0,100):
+  for i in range(0,100):
     cdf.append(np.percentile(data,int(i)))
   return cdf
 
@@ -15,7 +15,7 @@ cdf = findcdf(data)
 
 out_file = data_file + '.cdf'
 out = open(out_file, 'w')
-for xy in zip(cdf, xrange(0,100)):
+for xy in zip(cdf, range(0,100)):
 	out.write('%lf\t%lf\n' % xy)
 out.close()
 
