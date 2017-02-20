@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
 
 std::unordered_map<uint64_t, uint32_t> ops;
 std::vector<uint32_t> counts;
