@@ -6,7 +6,7 @@ import sys
 def findcdf(data):
   cdf = []
   for i in xrange(0,100):
-    cdf.append(numpy.percentile(data,int(i)))
+    cdf.append(np.percentile(data,int(i)))
   return cdf
 
 data_file = sys.argv[1]
