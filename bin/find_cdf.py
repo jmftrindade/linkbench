@@ -3,15 +3,20 @@
 import numpy as np
 import sys
 
-data_file = sys.argv[1]
+def findcdf(data):
+  cdf = []
+  for i in xrange(0,100):
+    cdf.append(numpy.percentile(data,int(i)))
+  return cdf
 
-xvals = np.array([float(line.rstrip('\n')) for line in open(data_file)])
-yvals = np.arange(len(xvals))/float(len(xvals))
+data_file = sys.argv[1]
+data = np.array([float(line.rstrip('\n')) for line in open(data_file)])
+cdf = findcdf(data)
 
 out_file = data_file + '.cdf'
 out = open(out_file, 'w')
-for (x, y) in zip(xvals, yvals):
-	out.write('%lf\t%lf\n' % (x, y))
+for xy in zip(cdf, xrange(0,100)):
+	out.write('%lf\t%lf\n' % xy)
 out.close()
 
 
