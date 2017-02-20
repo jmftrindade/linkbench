@@ -13,7 +13,6 @@ std::vector<uint32_t> counts;
 
 uint32_t max = 0;
 double mean = 0.0;
-uint32_t median = 0;
 
 void print_usage(const char* exec) {
   fprintf(stderr, "Usage: %s operations-file\n", exec);
@@ -26,11 +25,12 @@ void process_ops_file(const std::string& file) {
   char sep, type;
   uint64_t num_ops = 0;
   while (in >> node_id >> sep >> shard_id >> type && sep == ',') {
+    fprintf(stderr, "%llu\t%u\t%c\n", node_id, shard_id, type);
     ops[node_id]++;
     num_ops++;
   }
 
-  fprintf(stderr, "Processed %llu ops;\t", num_ops);
+  fprintf(stderr, "Processed %llu ops; ", num_ops);
 
   counts.reserve(ops.size());
   double sum = 0.0;
@@ -43,22 +43,16 @@ void process_ops_file(const std::string& file) {
     if (op.second > max)
       max = op.second;
   }
-  mean = sum / num_ops;
+  mean = sum / counts.size();
   std::sort(counts.begin(), counts.end());
-  size_t mid_point = counts.size() / 2;
-  median = counts.at(mid_point);
 
-  fprintf(stderr, "Max = %u, Mean = %lf, Median = %u\n", max, mean, median);
+  fprintf(stderr, "Max = %u, Mean = %lf\n", max, mean);
 }
 
 void output_stats(const std::string& file) {
   std::ofstream mean_out(file + ".mean");
   mean_out << mean << "\n";
   mean_out.close();
-
-  std::ofstream median_out(file + ".median");
-  median_out << median << "\n";
-  median_out.close();
 
   std::ofstream max_out(file + ".max");
   max_out << max << "\n";
@@ -78,6 +72,7 @@ int main(int argc, char** argv) {
 
   std::string file = std::string(argv[1]);
   process_ops_file(file);
+  // output_stats(file);
 
   return 0;
 }
