@@ -11,7 +11,7 @@ yvals = np.arange(len(xvals))/float(len(xvals))
 out_file = data_file + '.cdf'
 out = open(out_file, 'w')
 for (x, y) in zip(xvals, yvals):
-	out.write(x + '\t' + y + '\n')
+	out.write('%lf\t%lf\n' % (x, y))
 out.close()
 
 
