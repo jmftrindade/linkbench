@@ -24,7 +24,7 @@ void process_ops_file(std::ifstream& in, size_t op_cnt) {
   uint32_t shard_id;
   char sep, type;
   uint64_t num_ops = 0;
-  while (in >> node_id >> sep >> shard_id >> type && sep == ',' && num_ops <= op_cnt) {
+  while (in >> node_id >> sep >> shard_id >> type && sep == ',' && num_ops < op_cnt) {
     ops[node_id].insert(shard_id);
     num_ops++;
   }
