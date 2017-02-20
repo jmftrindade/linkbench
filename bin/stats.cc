@@ -42,13 +42,13 @@ void process_ops_file(std::ifstream& in, size_t op_cnt) {
   }
   std::sort(counts.begin(), counts.end());
 
-  fprintf(stderr, "Max = %u, Sum = %lf\n", max, sum);
+  fprintf(stderr, "Max = %u, Mean = %lf\n", max, sum / ops.size());
 }
 
 void output_stats(const std::string& file, uint64_t op_cnt) {
   std::string out_prefix = file + "." + std::to_string(op_cnt);
   std::ofstream mean_out(out_prefix + ".mean");
-  mean_out << sum / op_cnt << "\n";
+  mean_out << sum / ops.size() << "\n";
   mean_out.close();
 
   std::ofstream max_out(out_prefix + ".max");
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
   std::ifstream in(file);
   for (uint64_t i = 1; i <= 10; i++) {
     process_ops_file(in, 100000000ULL);
-    // output_stats(file, i * 100000000ULL);
+    output_stats(file, i * 100000000ULL);
   }
 
   return 0;
