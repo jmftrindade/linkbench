@@ -15,7 +15,7 @@ double mean = 0.0;
 uint32_t median = 0;
 
 void print_usage(const char* exec) {
-  fprintf(stderr, "Usage: %s operations-file\n\n", exec);
+  fprintf(stderr, "Usage: %s operations-file\n", exec);
 }
 
 void process_ops_file(const std::string& file) {
