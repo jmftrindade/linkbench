@@ -26,11 +26,11 @@ void process_ops_file(const std::string& file) {
   char sep, type;
   uint64_t num_ops = 0;
   while (in >> node_id >> sep >> shard_id >> type && sep == ',') {
-    uint32_t frag = ++ops[node_id];
-    if (frag > max)
-      max = frag;
+    ops[node_id]++;
     num_ops++;
   }
+
+  fprintf(stderr, "Processed %llu ops;\t", num_ops);
 
   counts.reserve(ops.size());
   double sum = 0.0;
@@ -40,10 +40,13 @@ void process_ops_file(const std::string& file) {
     else
       counts.push_back(op.second);
     sum += op.second;
+    if (op.second > max)
+      max = op.second;
   }
-  mean = sum / ops.size();
+  mean = sum / num_ops;
   std::sort(counts.begin(), counts.end());
-  median = counts.at(counts.size() / 2);
+  size_t mid_point = counts.size() / 2;
+  median = counts.at(mid_point);
 
   fprintf(stderr, "Max = %u, Mean = %lf, Median = %u\n", max, mean, median);
 }
