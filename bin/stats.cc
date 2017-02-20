@@ -73,11 +73,6 @@ void output_stats(const std::string& file, uint64_t op_cnt) {
 }
 
 int main(int argc, char** argv) {
-  if (argc != 2) {
-    print_usage(argv[0]);
-    return 0;
-  }
-
   int c;
   uint64_t op_interval = 100000000ULL;
   uint64_t init_nodes = 10000000ULL;
@@ -87,14 +82,23 @@ int main(int argc, char** argv) {
       case 'i':
         op_interval = std::stoll(std::string(optarg));
         break;
-      case 'x':
+      case 'n':
         init_nodes = std::stoll(std::string(optarg));
         break;
+      default:
+        fprintf(stderr, "Could not parse command line args: %c\n", c);
+        return -1;
     }
   }
 
+  if (optind == argc) {
+    print_usage(argv[0]);
+    return -1;
+  }
+
+  std::string file = std::string(argv[optind]);
+
   init_ops(init_nodes);
-  std::string file = std::string(argv[1]);
   std::ifstream in(file);
   for (uint64_t i = 1; in && in.peek() != EOF; i++) {
     process_ops_file(in, op_interval);
