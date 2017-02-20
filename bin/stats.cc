@@ -35,7 +35,10 @@ void process_ops_file(const std::string& file) {
   counts.reserve(ops.size());
   double sum = 0.0;
   for (auto op: ops) {
-    counts.push_back(op.second);
+    if (op.first < 10000001)
+      counts.push_back(op.second + 1);
+    else
+      counts.push_back(op.second);
     sum += op.second;
   }
   mean = sum / ops.size();
