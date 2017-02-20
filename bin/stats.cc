@@ -8,20 +8,29 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <unistd.h>
 
-std::unordered_map<uint64_t, std::set<uint32_t>> ops;
-std::vector<uint32_t> counts;
+std::unordered_map<uint64_t, std::set<int32_t>> ops;
 
+uint32_t cdf[101];
 uint32_t max = 0;
 double sum = 0.0;
 
 void print_usage(const char* exec) {
-  fprintf(stderr, "Usage: %s operations-file\n", exec);
+  fprintf(stderr, "Usage: %s [OPTIONS] operations-file\n\n", exec);
+  fprintf(stderr, "OPTIONS:\n");
+  fprintf(stderr, "\t-i Intervals for computing statistics\n");
+  fprintf(stderr, "\t-n Number of nodes initially present in database\n");
+}
+
+void init_ops(uint64_t init_nodes) {
+  for (uint64_t i = 1; i <= init_nodes; i++)
+    ops[i].insert(-1);
 }
 
 void process_ops_file(std::ifstream& in, size_t op_cnt) {
   uint64_t node_id;
-  uint32_t shard_id;
+  int32_t shard_id;
   char sep, type;
   uint64_t num_ops = 0;
   while (in >> node_id >> sep >> shard_id >> type && sep == ',' && num_ops < op_cnt) {
@@ -30,17 +39,18 @@ void process_ops_file(std::ifstream& in, size_t op_cnt) {
   }
   fprintf(stderr, "Processed %llu ops; ", num_ops);
   
+  std::vector<uint32_t> counts;
   for (auto op: ops) {
-    uint32_t count = op.second.size();
-    if (op.first < 10000001)
-      counts.push_back(count + 1);
-    else
-      counts.push_back(count);
+    counts.push_back(op.second.size());
     sum += counts.back();
-    if (counts.back() > max)
-      max = counts.back();
   }
+  
   std::sort(counts.begin(), counts.end());
+  for (size_t i = 0; i < 100; i++) {
+    double mark = ((double) (i * counts.size())) / 100.0;
+    cdf[i] = counts[(size_t) mark];
+  }
+  max = cdf[100] = counts.back();
 
   fprintf(stderr, "Max = %u, Mean = %lf\n", max, sum / ops.size());
 }
@@ -55,10 +65,10 @@ void output_stats(const std::string& file, uint64_t op_cnt) {
   max_out << max << "\n";
   max_out.close();
 
-  std::ofstream count_out(out_prefix + ".count");
-  for (auto count : counts)
-    count_out << count << "\n";
-  count_out.close();
+  std::ofstream cdf_out(out_prefix + ".cdf");
+  for (size_t i = 0; i <= 100; i++)
+    cdf_out << cdf[i] << "\t" << i << "\n";
+  cdf_out.close();
 }
 
 int main(int argc, char** argv) {
@@ -67,12 +77,29 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  int c;
+  uint64_t op_interval = 100000000ULL;
+  uint64_t init_nodes = 10000000ULL;
+
+  while ((c = getopt(argc, argv, "i:n:")) != -1) {
+    switch(c) {
+      case 'i':
+        op_interval = std::stoll(std::string(optarg));
+        break;
+      case 'x':
+        init_nodes = std::stoll(std::string(optarg));
+        break;
+    }
+  }
+
+  init_ops(init_nodes);
   std::string file = std::string(argv[1]);
   std::ifstream in(file);
-  for (uint64_t i = 1; i <= 10; i++) {
-    process_ops_file(in, 100000000ULL);
-    output_stats(file, i * 100000000ULL);
+  for (uint64_t i = 1; in && in.peek() != EOF; i++) {
+    process_ops_file(in, op_interval);
+    output_stats(file, i * op_interval);
   }
+  in.close();
 
   return 0;
 }
