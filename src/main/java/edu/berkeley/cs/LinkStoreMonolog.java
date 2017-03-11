@@ -4,8 +4,9 @@ import com.facebook.LinkBench.GraphStore;
 import com.facebook.LinkBench.Link;
 import com.facebook.LinkBench.Node;
 import com.facebook.LinkBench.Phase;
-import edu.berkeley.cs.zipg.GraphQueryAggregatorService;
-import edu.berkeley.cs.zipg.ThriftAssoc;
+import edu.berkeley.cs.graphstore.GraphStoreService;
+import edu.berkeley.cs.graphstore.TLink;
+import edu.berkeley.cs.graphstore.TNode;
 import org.apache.log4j.Logger;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -13,22 +14,29 @@ import org.apache.thrift.transport.TTransport;
 
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.TreeSet;
 
-public class LinkStoreSuccinct extends GraphStore {
+public class LinkStoreMonolog extends GraphStore {
 
   private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
-  private GraphQueryAggregatorService.Client client;
+  private GraphStoreService.Client client;
   private TTransport transport;
-  private AtomicLong idGenerator = new AtomicLong(1L);
 
   // Helper methods
-  private Link thriftAssocToLink(ThriftAssoc a) {
-    return new Link(a.srcId, a.atype, a.dstId, (byte) 0, a.attr.getBytes(), 0, a.timestamp);
+  private TNode nodeToTNode(Node n) {
+    return new TNode(n.id, n.type, new String(n.data));
   }
 
-  private ThriftAssoc linkToThriftAssoc(Link a) {
-    return new ThriftAssoc(a.id1, a.id2, a.link_type, a.time, new String(a.data));
+  private Node tNodeToNode(TNode n) {
+    return new Node(n.id, (int) n.type, 0, 0, n.data.getBytes());
+  }
+
+  private Link tLinkToLink(TLink a) {
+    return new Link(a.id1, a.link_type, a.id2, (byte) 0, a.data.getBytes(), 0, a.time);
+  }
+
+  private TLink linkToTLink(Link a) {
+    return new TLink(0, a.id1, a.link_type, a.id2, a.time, new String(a.data));
   }
 
   /**
@@ -37,19 +45,15 @@ public class LinkStoreSuccinct extends GraphStore {
   @Override public void initialize(Properties p, Phase currentPhase, int threadId)
     throws Exception {
     String hostname = p.getProperty("hostname", "localhost");
-    int port = Integer.parseInt(p.getProperty("port", "11001"));
+    int port = Integer.parseInt(p.getProperty("port", "9090"));
 
     LOG.info("Attempting to connect to thrift server @ " + hostname + ":" + port);
     transport = new TSocket(hostname, port);
-    client = new GraphQueryAggregatorService.Client(new TBinaryProtocol(transport));
+    client = new GraphStoreService.Client(new TBinaryProtocol(transport));
     transport.open();
-    LOG.info("Initializing connection.");
-    client.init();
     LOG.info("Connection successful.");
-    if (currentPhase == Phase.REQUEST) {
-      long startId = Long.parseLong(p.getProperty("nodeidoffset")) + 1;
-      LOG.info("Request phase: setting startId to " + startId);
-      idGenerator.set(startId);
+    if (currentPhase == Phase.LOAD) {
+      addNode("", new Node(0, 0, 0, 0, new byte[0]));
     }
   }
 
@@ -80,8 +84,7 @@ public class LinkStoreSuccinct extends GraphStore {
    * @return the id allocated for the node
    */
   @Override public long addNode(String dbid, Node node) throws Exception {
-    long id = idGenerator.getAndAdd(1L);
-    return client.addNode(id, new String(node.data));
+    return client.add_node(nodeToTNode(node));
   }
 
   /**
@@ -93,8 +96,7 @@ public class LinkStoreSuccinct extends GraphStore {
    * @return null if not found, a Node with all fields filled in otherwise
    */
   @Override public Node getNode(String dbid, int type, long id) throws Exception {
-    String data = client.getNode(id);
-    return new Node(id, type, 0, 0, data.getBytes());
+    return tNodeToNode(client.get_node(type, id));
   }
 
   /**
@@ -105,7 +107,7 @@ public class LinkStoreSuccinct extends GraphStore {
    * @return true if the update was successful, false if not present
    */
   @Override public boolean updateNode(String dbid, Node node) throws Exception {
-    return client.updateNode(node.id, new String(node.data));
+    return client.update_node(nodeToTNode(node));
   }
 
   /**
@@ -117,7 +119,7 @@ public class LinkStoreSuccinct extends GraphStore {
    * @return true if the node was deleted, false if not present
    */
   @Override public boolean deleteNode(String dbid, int type, long id) throws Exception {
-    return client.deleteNode(id);
+    return client.delete_node(type, id);
   }
 
   /**
@@ -142,7 +144,7 @@ public class LinkStoreSuccinct extends GraphStore {
    * @throws Exception
    */
   @Override public boolean addLink(String dbid, Link a, boolean noinverse) throws Exception {
-    return client.addLink(linkToThriftAssoc(a));
+    return client.add_link(linkToTLink(a));
   }
 
   /**
@@ -160,7 +162,7 @@ public class LinkStoreSuccinct extends GraphStore {
    */
   @Override public boolean deleteLink(String dbid, long id1, long link_type, long id2,
     boolean noinverse, boolean expunge) throws Exception {
-    return client.deleteLink(id1, link_type, id2);
+    return client.delete_link(id1, link_type, id2);
   }
 
   /**
@@ -174,7 +176,7 @@ public class LinkStoreSuccinct extends GraphStore {
    * @throws Exception
    */
   @Override public boolean updateLink(String dbid, Link a, boolean noinverse) throws Exception {
-    return client.updateLink(linkToThriftAssoc(a));
+    return client.update_link(linkToTLink(a));
   }
 
   /**
@@ -189,7 +191,22 @@ public class LinkStoreSuccinct extends GraphStore {
    * @throws Exception
    */
   @Override public Link getLink(String dbid, long id1, long link_type, long id2) throws Exception {
-    return thriftAssocToLink(client.getLink(id1, link_type, id2));
+    return tLinkToLink(client.get_link(id1, link_type, id2));
+  }
+
+  @Override public Link[] multigetLinks(String dbid, long id1, long link_type,
+    long id2s[]) throws Exception {
+    TreeSet<Long> id2sSet = new TreeSet<>();
+    for (long id2 : id2s) {
+      id2sSet.add(id2);
+    }
+    List<TLink> tLinkList = client.multiget_link(id1, link_type, id2sSet);
+    Link[] linkList = new Link[tLinkList.size()];
+    int i = 0;
+    for (TLink tLink : tLinkList) {
+      linkList[i++] = tLinkToLink(tLink);
+    }
+    return linkList;
   }
 
   /**
@@ -204,11 +221,11 @@ public class LinkStoreSuccinct extends GraphStore {
    * @throws Exception
    */
   @Override public Link[] getLinkList(String dbid, long id1, long link_type) throws Exception {
-    List<ThriftAssoc> assocList = client.getLinkList(id1, link_type);
-    Link[] linkList = new Link[assocList.size()];
+    List<TLink> tLinkList = client.get_link_list(id1, link_type);
+    Link[] linkList = new Link[tLinkList.size()];
     int i = 0;
-    for (ThriftAssoc assoc : assocList) {
-      linkList[i++] = thriftAssocToLink(assoc);
+    for (TLink tLink : tLinkList) {
+      linkList[i++] = tLinkToLink(tLink);
     }
     return linkList;
   }
@@ -230,17 +247,17 @@ public class LinkStoreSuccinct extends GraphStore {
    */
   @Override public Link[] getLinkList(String dbid, long id1, long link_type, long minTimestamp,
     long maxTimestamp, int offset, int limit) throws Exception {
-    List<ThriftAssoc> assocList =
-      client.getFilteredLinkList(id1, link_type, minTimestamp, maxTimestamp, offset, limit);
-    Link[] linkList = new Link[assocList.size()];
+    List<TLink> tLinkList =
+      client.get_link_list_range(id1, link_type, minTimestamp, maxTimestamp, offset, limit);
+    Link[] linkList = new Link[tLinkList.size()];
     int i = 0;
-    for (ThriftAssoc assoc : assocList) {
-      linkList[i++] = thriftAssocToLink(assoc);
+    for (TLink tLink : tLinkList) {
+      linkList[i++] = tLinkToLink(tLink);
     }
     return linkList;
   }
 
   @Override public long countLinks(String dbid, long id1, long link_type) throws Exception {
-    return client.countLinks(id1, link_type);
+    return client.count_links(id1, link_type);
   }
 }
