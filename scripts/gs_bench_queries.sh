@@ -3,6 +3,10 @@
 sbin="`dirname "$0"`"
 sbin="`cd "$sbin"; pwd`"
 
+server=${1:-"localhost"}
+
+echo "Server=$server"
+
 query_types=(
 addlink
 deletelink
@@ -17,10 +21,10 @@ deletenode
 )
 
 read_only=(
-#countlink
-#getlink
+countlink
+getlink
 getlinklist
-#getnode
+getnode
 )
 
 function qopts() {
@@ -36,29 +40,24 @@ function qopts() {
   echo $QOPTS_
 }
 
-function setup() {
-  dataset=$1
-  zipg_master=`cat ${sbin}/zipg_master`
-
+function start_gs() {
   # By default disable strict CLIENT key checking
   if [ "$SSH_OPTS" = "" ]; then
     SSH_OPTS="-o StrictHostKeyChecking=no"
   fi
 
-  ssh $SSH_OPTS "$zipg_master" ~/succinct-graph/sbin/setup.sh $dataset 2>&1 | sed "s/^/$zipg_master: /"
+  ssh $SSH_OPTS "$server" $HOME/monolog/sbin/stop_gs.sh 2>&1 | sed "s/^/$server: /"
+  ssh $SSH_OPTS "$server" $HOME/monolog/sbin/start_gs.sh 2>&1 | sed "s/^/$server: /"
+  ssh $SSH_OPTS "$server" $HOME/linkbench/scripts/load.sh 2>&1 | sed "s/^/$server: /"
 }
 
-echo "Copying benchmark directory"
-$sbin/copy-dir $sbin/../
-
-dataset=$1
-
-for query_type in ${read_only[@]}; do
+for query_type in ${query_types[@]}; do
   QOPTS=`qopts $query_type`
-  for num_threads in 32; do
-    setup $dataset
-    echo "Setup complete"
+  for num_threads in 1 2 4 8 16 32; do
+    echo "Benchmarking query_type=$query_type with num_threads=$num_threads"
+    start_gs
+    echo "Started GS"
     sleep 1
-    $sbin/bench_on_clients.sh $dataset $num_threads $QOPTS
+    $sbin/bench_gs_node.sh $server $num_threads $QOPTS
   done
 done
