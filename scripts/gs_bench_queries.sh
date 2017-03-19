@@ -20,11 +20,7 @@ updatenode
 deletenode
 )
 
-read_only=(
-countlink
-getlink
-getlinklist
-getnode
+queries=(
 )
 
 function qopts() {
@@ -41,23 +37,36 @@ function qopts() {
 }
 
 function start_gs() {
+  tail_scheme=$1
+
   # By default disable strict CLIENT key checking
   if [ "$SSH_OPTS" = "" ]; then
     SSH_OPTS="-o StrictHostKeyChecking=no"
   fi
 
   ssh $SSH_OPTS "$server" $HOME/monolog/sbin/stop_gs.sh 2>&1 | sed "s/^/$server: /"
-  ssh $SSH_OPTS "$server" $HOME/monolog/sbin/start_gs.sh 2>&1 | sed "s/^/$server: /"
-  ssh $SSH_OPTS "$server" $HOME/linkbench/scripts/load.sh 2>&1 | sed "s/^/$server: /"
+  sleep 5
+  ssh $SSH_OPTS "$server" $HOME/monolog/sbin/start_gs.sh $tail_scheme 2>&1 | sed "s/^/$server: /"
 }
 
-for query_type in ${query_types[@]}; do
-  QOPTS=`qopts $query_type`
-  for num_threads in 1 2 4 8 16 32; do
-    echo "Benchmarking query_type=$query_type with num_threads=$num_threads"
-    start_gs
-    echo "Started GS"
+for tail_scheme in "read-stalled" "write-stalled"; do
+  for query_type in ${queries[@]}; do
+    QOPTS=`qopts $query_type`
+    for num_threads in 32; do
+      echo "Starting GS"
+      start_gs $tail_scheme
+      sleep 1
+      echo "Benchmarking query_type=$query_type with num_threads=$num_threads"
+      $sbin/bench_gs_node.sh $server $num_threads $tail_scheme $QOPTS
+    done
+  done
+
+  # Linkbench wokload
+  for num_threads in 64 128; do
+    echo "Starting GS"
+    start_gs $tail_scheme
     sleep 1
-    $sbin/bench_gs_node.sh $server $num_threads $QOPTS
+    echo "Benchmarking linkbench workload with num_threads=$num_threads"
+    $sbin/bench_gs_node.sh $server $num_threads $tail_scheme
   done
 done

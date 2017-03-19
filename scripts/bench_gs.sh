@@ -3,22 +3,20 @@
 sbin="`dirname "$0"`"
 sbin="`cd "$sbin"; pwd`"
 
-function setup() {
-  dataset=$1
-  zipg_master=`cat ${sbin}/zipg_master`
+server=${1:-"localhost"}
 
+function setup() {
   # By default disable strict CLIENT key checking
   if [ "$SSH_OPTS" = "" ]; then
     SSH_OPTS="-o StrictHostKeyChecking=no"
   fi
 
-  ssh $SSH_OPTS "$zipg_master" ~/succinct-graph/sbin/setup.sh $dataset 2>&1 | sed "s/^/$zipg_master: /"
+  ssh $SSH_OPTS "$server" $HOME/monolog/sbin/stop_gs.sh 2>&1 | sed "s/^/$server: /"
+  sleep 5
+  ssh $SSH_OPTS "$server" $HOME/monolog/sbin/start_gs.sh 2>&1 | sed "s/^/$server: /"
 }
 
-echo "Copying benchmark directory"
-$sbin/copy-dir $sbin/../
-
-for num_threads in 64; do
-  setup $1
-  $sbin/bench_on_clients.sh $dataset $num_threads
+for num_threads in 1 2 4 8 16 32; do
+  setup
+  $sbin/bench_gs_node.sh $server $num_threads
 done

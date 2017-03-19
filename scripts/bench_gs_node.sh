@@ -7,6 +7,8 @@ servername=$1
 shift
 num_threads=$1
 shift
+tail_scheme=$1
+shift
 
 QOPTS=""
 if [ "$#" = "0" ]; then
@@ -25,7 +27,9 @@ else
   done
 fi
 
-echo "Executing benchmark on node $node_id with $num_threads threads"
-cmd="$sbin/../bin/linkbench -c $sbin/../config/LinkConfigMonolog.properties -l -r -L $sbin/../gs.t${num_threads}.q${query_type}.log -Drequesters=${num_threads} -Dhostname=$servername $QOPTS"
+echo "Executing benchmark on node $servername with $num_threads threads"
+ssh $SSH_OPTS "$servername" $HOME/linkbench/scripts/load.sh $num_threads $query_type $tail_scheme 2>&1 | sed "s/^/$servername: /"
+mkdir -p $sbin/../$tail_scheme
+cmd="$sbin/../bin/linkbench -c $sbin/../config/LinkConfigMonolog.properties -r -L $sbin/../$tail_scheme/gs.t${num_threads}.q${query_type}.log -Drequesters=${num_threads} -Dhostname=$servername $QOPTS"
 echo $cmd
 $cmd
