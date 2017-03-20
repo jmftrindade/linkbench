@@ -79,6 +79,13 @@ public class LinkStoreNeo4j extends GraphStore {
 
     session = driver.session();
 
+    if (currentPhase == Phase.LOAD) {
+      try (Transaction tx = session.beginTransaction()) {
+        tx.run("CREATE INDEX ON :Node(id)");
+        tx.success();
+      }
+    }
+
     if (currentPhase == Phase.REQUEST) {
       long startId = Long.parseLong(p.getProperty("maxid1")) + 1;
       LOG.info("Request phase: setting startId to " + startId);
@@ -115,7 +122,7 @@ public class LinkStoreNeo4j extends GraphStore {
     long id;
     try (Transaction tx = session.beginTransaction()) {
       id = idGenerator.getAndIncrement();
-      String createNodeStmt = "CREATE (node {id: {id}, type: {type}, data: {data}})";
+      String createNodeStmt = "CREATE (n:Node {id: {id}, type: {type}, data: {data}})";
       tx.run(createNodeStmt, nodeParams(id, node.type, node.data));
       tx.success();
     }
@@ -132,7 +139,7 @@ public class LinkStoreNeo4j extends GraphStore {
     try (Transaction tx = session.beginTransaction()) {
       for (Node node : nodes) {
         long id = idGenerator.getAndIncrement();
-        String createNodeStmt = "CREATE (node {id: {id}, type: {type}, data: {data}})";
+        String createNodeStmt = "CREATE (n:Node {id: {id}, type: {type}, data: {data}})";
         tx.run(createNodeStmt, nodeParams(id, node.type, node.data));
         ids[i++] = id;
       }
@@ -151,11 +158,11 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public Node getNode(String dbid, int type, long id) throws Exception {
     try (Transaction tx = session.beginTransaction()) {
-      String getNodeStmt = "MATCH (node {id: {id}, type: {type}}) return node";
+      String getNodeStmt = "MATCH (n:Node {id: {id}, type: {type}}) return n";
       StatementResult result = tx.run(getNodeStmt, nodeParams(id, type));
       if (result.hasNext()) {
         Record record = result.next();
-        byte[] data = record.get("node.data").asString().getBytes();
+        byte[] data = record.get("n.data").asString().getBytes();
         tx.success();
         return new Node(id, type, 0, 0, data);
       }
@@ -173,7 +180,7 @@ public class LinkStoreNeo4j extends GraphStore {
     boolean success;
     try (Transaction tx = session.beginTransaction()) {
       String updateNodeStmt =
-        "MATCH (node {id: {id}, type: {type}}) SET node.data = {data} RETURN node";
+        "MATCH (n:Node {id: {id}, type: {type}}) SET n.data = {data} RETURN n";
       StatementResult result = tx.run(updateNodeStmt, nodeParams(node.id, node.type, node.data));
       success = result.hasNext();
       tx.success();
@@ -189,7 +196,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public boolean deleteNode(String dbid, int type, long id) throws Exception {
     int deletionCount;
     try (Transaction tx = session.beginTransaction()) {
-      String deleteNodeStmt = "MATCH (node {id: {id}, type: {type}}) DELETE node";
+      String deleteNodeStmt = "MATCH (n:Node {id: {id}, type: {type}}) DELETE n";
       StatementResult result = tx.run(deleteNodeStmt, nodeParams(id, type));
       deletionCount = result.consume().counters().nodesDeleted();
       tx.success();
@@ -218,7 +225,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public boolean addLink(String dbid, Link a, boolean noinverse) throws Exception {
     int creationCount;
     try (Transaction tx = session.beginTransaction()) {
-      String createLinkStmt = "MATCH (n1 {id: {id1}}) MATCH (n2: {id: {id2}}) "
+      String createLinkStmt = "MATCH (n1:Node {id: {id1}}) MATCH (n2:Node {id: {id2}}) "
         + "CREATE (n1)-[r:{link_type} {time: {time}, data: {data}}]->(n2)";
       StatementResult result = tx.run(createLinkStmt, linkParams(a));
       creationCount = result.consume().counters().relationshipsCreated();
@@ -229,7 +236,7 @@ public class LinkStoreNeo4j extends GraphStore {
 
   @Override public void addBulkLinks(String dbid, List<Link> links, boolean noinverse)
     throws Exception {
-    String createLinkStmt = "MATCH (n1 {id: {id1}}) MATCH (n2: {id: {id2}}) "
+    String createLinkStmt = "MATCH (n1:Node {id: {id1}}) MATCH (n2:Node {id: {id2}}) "
       + "CREATE (n1)-[r:{link_type} {time: {time}, data: {data}}]->(n2)";
     try (Transaction tx = session.beginTransaction()) {
       for (Link a : links) {
@@ -252,7 +259,7 @@ public class LinkStoreNeo4j extends GraphStore {
     int deletionCount;
     try (Transaction tx = session.beginTransaction()) {
       String deleteLinkStmt =
-        "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2: {id: {id2}}) DELETE r";
+        "MATCH (n1:Node {id: {id1}}) -[r:{link_type}]-> (n2:Node {id: {id2}}) DELETE r";
       StatementResult result = tx.run(deleteLinkStmt, linkParams(id1, link_type, id2));
       deletionCount = result.consume().counters().relationshipsDeleted();
       tx.success();
@@ -271,7 +278,7 @@ public class LinkStoreNeo4j extends GraphStore {
     boolean success;
     try (Transaction tx = session.beginTransaction()) {
       String updateLinkStmt =
-        "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2: {id: {id2}}) SET r.time = {time}, r.data = {data} RETURN r";
+        "MATCH (n1:Node {id: {id1}}) -[r:{link_type}]-> (n2:Node {id: {id2}}) SET r.time = {time}, r.data = {data} RETURN r";
       StatementResult result = tx.run(updateLinkStmt, linkParams(a));
       success = result.hasNext();
       tx.success();
@@ -287,7 +294,7 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public Link getLink(String dbid, long id1, long link_type, long id2) throws Exception {
     try (Transaction tx = session.beginTransaction()) {
-      String getLinkStmt = "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2: {id: {id2}}) RETURN r";
+      String getLinkStmt = "MATCH (n1:Node {id: {id1}}) -[r:{link_type}]-> (n2:Node {id: {id2}}) RETURN r";
       StatementResult result = tx.run(getLinkStmt, linkParams(id1, link_type, id2));
       if (result.hasNext()) {
         Record record = result.next();
@@ -312,7 +319,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public Link[] getLinkList(String dbid, long id1, long link_type) throws Exception {
     ArrayList<Link> links = new ArrayList<>();
     try (Transaction tx = session.beginTransaction()) {
-      String getLinkListStmt = "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2) RETURN r, n2";
+      String getLinkListStmt = "MATCH (n1:Node {id: {id1}}) -[r:{link_type}]-> (n2:Node) RETURN r, n2";
       StatementResult result = tx.run(getLinkListStmt, linkListParams(id1, link_type));
       while (result.hasNext()) {
         Record record = result.next();
@@ -341,7 +348,7 @@ public class LinkStoreNeo4j extends GraphStore {
 
     try (Transaction tx = session.beginTransaction()) {
       String getLinkList2Stmt =
-        "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2) WHERE r.time >= {min_ts} AND r.time <= {max_ts} RETURN r, n2";
+        "MATCH (n1:Node {id: {id1}}) -[r:{link_type}]-> (n2:Node) WHERE r.time >= {min_ts} AND r.time <= {max_ts} RETURN r, n2";
       StatementResult result =
         tx.run(getLinkList2Stmt, linkListParams(id1, link_type, minTimestamp, maxTimestamp));
       while (result.hasNext()) {
@@ -361,7 +368,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public long countLinks(String dbid, long id1, long link_type) throws Exception {
     long count = 0;
     try (Transaction tx = session.beginTransaction()) {
-      String countLinksStmt = "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2) RETURN count(r)";
+      String countLinksStmt = "MATCH (n1:Node {id: {id1}}) -[r:{link_type}]-> (n2:Node) RETURN count(r)";
       StatementResult result = tx.run(countLinksStmt, linkListParams(id1, link_type));
       if (result.hasNext()) {
         Record record = result.next();
