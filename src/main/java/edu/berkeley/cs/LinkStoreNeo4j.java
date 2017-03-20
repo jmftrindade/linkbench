@@ -79,6 +79,7 @@ public class LinkStoreNeo4j extends GraphStore {
     LOG.info("Server = " + server + " port = " + port);
     LinkStoreNeo4j.initializeDriver(server, port);
 
+    session = driver.session();
 
     if (currentPhase == Phase.REQUEST) {
       long startId = Long.parseLong(p.getProperty("maxid1")) + 1;
