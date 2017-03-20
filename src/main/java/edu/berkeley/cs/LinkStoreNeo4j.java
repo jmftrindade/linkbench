@@ -1,9 +1,6 @@
 package edu.berkeley.cs;
 
-import com.facebook.LinkBench.GraphStore;
-import com.facebook.LinkBench.Link;
-import com.facebook.LinkBench.Node;
-import com.facebook.LinkBench.Phase;
+import com.facebook.LinkBench.*;
 import org.apache.log4j.Logger;
 import org.neo4j.driver.v1.*;
 
@@ -255,6 +252,11 @@ public class LinkStoreNeo4j extends GraphStore {
     }
   }
 
+  @Override public void addBulkCounts(String dbid, List<LinkCount> a)
+    throws Exception {
+    // Do nothing
+  }
+
   /**
    * Delete link identified by parameters from store
    *
@@ -267,8 +269,8 @@ public class LinkStoreNeo4j extends GraphStore {
     boolean noinverse, boolean expunge) throws Exception {
     int deletionCount;
     try (Transaction tx = session.beginTransaction()) {
-      String deleteLinkStmt = "MATCH (n1:Node {id: {id1}}) -[r:" + linkType(link_type)
-        + "]-> (n2:Node {id: {id2}}) DELETE r";
+      String deleteLinkStmt = "MATCH (n1:Node {id: {id1}})-[r:" + linkType(link_type)
+        + "]->(n2:Node {id: {id2}}) DELETE r";
       StatementResult result = tx.run(deleteLinkStmt, linkParams(id1, id2));
       deletionCount = result.consume().counters().relationshipsDeleted();
       tx.success();
@@ -286,8 +288,8 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public boolean updateLink(String dbid, Link a, boolean noinverse) throws Exception {
     boolean success;
     try (Transaction tx = session.beginTransaction()) {
-      String updateLinkStmt = "MATCH (n1:Node {id: {id1}}) -[r:" + linkType(a.link_type)
-        + "]-> (n2:Node {id: {id2}}) SET r.time = {time}, r.data = {data} RETURN r";
+      String updateLinkStmt = "MATCH (n1:Node {id: {id1}})-[r:" + linkType(a.link_type)
+        + "]->(n2:Node {id: {id2}}) SET r.time = {time}, r.data = {data} RETURN r";
       StatementResult result = tx.run(updateLinkStmt, linkParams(a));
       success = result.hasNext();
       tx.success();
@@ -303,8 +305,8 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public Link getLink(String dbid, long id1, long link_type, long id2) throws Exception {
     try (Transaction tx = session.beginTransaction()) {
-      String getLinkStmt = "MATCH (n1:Node {id: {id1}}) -[r:" + linkType(link_type)
-        + "]-> (n2:Node {id: {id2}}) RETURN r";
+      String getLinkStmt = "MATCH (n1:Node {id: {id1}})-[r:" + linkType(link_type)
+        + "]->(n2:Node {id: {id2}}) RETURN r";
       StatementResult result = tx.run(getLinkStmt, linkParams(id1, id2));
       if (result.hasNext()) {
         Record record = result.next();
@@ -330,7 +332,7 @@ public class LinkStoreNeo4j extends GraphStore {
     ArrayList<Link> links = new ArrayList<>();
     try (Transaction tx = session.beginTransaction()) {
       String getLinkListStmt =
-        "MATCH (n1:Node {id: {id1}}) -[r:" + linkType(link_type) + "]-> (n2:Node) RETURN r, n2";
+        "MATCH (n1:Node {id: {id1}})-[r:" + linkType(link_type) + "]->(n2:Node) RETURN r, n2";
       StatementResult result = tx.run(getLinkListStmt, linkListParams(id1));
       while (result.hasNext()) {
         Record record = result.next();
@@ -358,8 +360,8 @@ public class LinkStoreNeo4j extends GraphStore {
     ArrayList<Link> links = new ArrayList<>();
 
     try (Transaction tx = session.beginTransaction()) {
-      String getLinkList2Stmt = "MATCH (n1:Node {id: {id1}}) -[r:" + linkType(link_type)
-        + "]-> (n2:Node) WHERE r.time >= {min_ts} AND r.time <= {max_ts} RETURN r, n2";
+      String getLinkList2Stmt = "MATCH (n1:Node {id: {id1}})-[r:" + linkType(link_type)
+        + "]->(n2:Node) WHERE r.time >= {min_ts} AND r.time <= {max_ts} RETURN r, n2";
       StatementResult result =
         tx.run(getLinkList2Stmt, linkListParams(id1, minTimestamp, maxTimestamp));
       while (result.hasNext()) {
@@ -380,7 +382,7 @@ public class LinkStoreNeo4j extends GraphStore {
     long count = 0;
     try (Transaction tx = session.beginTransaction()) {
       String countLinksStmt =
-        "MATCH (n1:Node {id: {id1}}) -[r:" + linkType(link_type) + "]-> (n2:Node) RETURN count(r)";
+        "MATCH (n1:Node {id: {id1}})-[r:" + linkType(link_type) + "]->(n2:Node) RETURN count(r)";
       StatementResult result = tx.run(countLinksStmt, linkListParams(id1));
       if (result.hasNext()) {
         Record record = result.next();
