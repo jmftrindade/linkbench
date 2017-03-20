@@ -223,7 +223,6 @@ public class LinkBenchDriver {
     long expectedNodes = maxid1 - startid1;
     long actualLinks = 0;
     long actualNodes = 0;
-    LinkStore linkStore = createLinkStore();
 
     double nodeLoadTime_s = 0.0;
     if (genNodes) {
@@ -231,7 +230,7 @@ public class LinkBenchDriver {
       LatencyStats nodeLatencyStats = new LatencyStats(nNodeLoaders);
       List<Runnable> nodeLoaders = new ArrayList<>(nNodeLoaders);
       for (int i = 0; i < nNodeLoaders; i++) {
-        NodeStore nodeStore = createNodeStore(linkStore);
+        NodeStore nodeStore = createNodeStore(createLinkStore());
         Random rng = new Random(masterRandom.nextLong());
         nodeLoaders
           .add(new NodeLoader(props, logger, nodeStore, rng, nodeLatencyStats, csvStreamFile, i));
@@ -260,6 +259,7 @@ public class LinkBenchDriver {
 
     LoadProgress loadTracker = LoadProgress.create(logger, props);
     for (int i = 0; i < nLoaders; i++) {
+      LinkStore linkStore = createLinkStore();
       bulkLoad = bulkLoad && linkStore.bulkLoadBatchSize() > 0;
       LinkBenchLoad l = new LinkBenchLoad(linkStore, props, linkLatencyStats, csvStreamFile, i,
         maxid1 == startid1 + 1, chunk_q, loadTracker);
@@ -372,10 +372,11 @@ public class LinkBenchDriver {
     Random masterRandom = createMasterRNG(props, Config.REQUEST_RANDOM_SEED);
 
     // create requesters
-    logger.info("Initializing stores...");
-    Stores stores = initStores();
-    logger.info("Initialization complete.");
     for (int i = 0; i < nrequesters; i++) {
+      logger.info("Initializing stores...");
+      Stores stores = initStores();
+      logger.info("Initialization complete.");
+
       logger.info("Assigning linkstore " + stores.linkStore + " and nodestore " + stores.nodeStore
         + " to requester " + i);
       LinkBenchRequest l =

@@ -1,49 +1,70 @@
 package edu.berkeley.cs;
 
 import com.facebook.LinkBench.*;
-import com.facebook.LinkBench.Node;
 import org.apache.log4j.Logger;
-import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.graphdb.index.Index;
-import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.driver.v1.*;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.neo4j.driver.v1.Values.parameters;
+
 public class LinkStoreNeo4j extends GraphStore {
   private final Logger LOG = Logger.getLogger("com.facebook.linkbench");
-  private static GraphDatabaseService db = null;
-  private static Index<org.neo4j.graphdb.Node> idIndex = null;
-  private static Comparator<Link> linkComparator;
 
-  static {
-    linkComparator = new Comparator<Link>() {
-      @Override public int compare(Link o1, Link o2) {
-        if (o2.time == o1.time) {
-          return 0;
-        }
-        return o1.time < o2.time ? 1 : -1;
+  private static Comparator<Link> linkComparator = new Comparator<Link>() {
+    @Override public int compare(Link o1, Link o2) {
+      if (o2.time == o1.time) {
+        return 0;
       }
-    };
-  }
+      return o1.time < o2.time ? 1 : -1;
+    }
+  };
+
+  private static String createNodeStmt = "CREATE (node {id: {id}, type: {type}, data: {data}})";
+
+  private static String createLinkStmt = "MATCH (n1 {id: {id1}}) MATCH (n2: {id: {id2}}) "
+    + "CREATE (n1)-[r:{link_type} {time: {time}, data: {data}}]->(n2)";
+
+
+  private static Driver driver = null;
+  private Session session = null;
 
   private AtomicLong idGenerator = new AtomicLong(1L);
 
-  /**
-   * Helper methods
-   **/
-  public static void registerShutdownHook(final GraphDatabaseService graphDb) {
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      public void run() {
-        graphDb.shutdown();
-      }
-    });
+  // Helpers
+  private static Value nodeParams(long id, int type, byte[] data) {
+    return parameters("id", id, "type", type, "data", new String(data));
   }
 
-  public RelationshipType linkTypeToRelationshipType(long linkType) {
-    return DynamicRelationshipType.withName(String.valueOf(linkType));
+  private static Value nodeParams(long id, int type) {
+    return parameters("id", id, "type", type);
+  }
+
+  private static Value linkParams(Link l) {
+    return parameters("id1", l.id1, "id2", l.id2, "link_type", l.link_type, "time", l.time, "data",
+      l.data);
+  }
+
+  private static Value linkParams(long id1, long link_type, long id2) {
+    return parameters("id1", id1, "id2", id2, "link_type", link_type);
+  }
+
+  private static Value linkListParams(long id1, long link_type) {
+    return parameters("id1", id1, "link_type", link_type);
+  }
+
+  private static Value linkListParams(long id1, long link_type, long minTimestamp,
+    long maxTimestamp) {
+    return parameters("id1", id1, "link_type", link_type, "min_ts", minTimestamp, "max_ts",
+      maxTimestamp);
+  }
+
+  private static synchronized void initializeDriver(String server, String port) {
+    if (driver == null) {
+      String serverUri = "bolt://" + server + ":" + port;
+      driver = GraphDatabase.driver(serverUri, AuthTokens.basic("neo4j", "neo4j"));
+    }
   }
 
   /**
@@ -53,37 +74,12 @@ public class LinkStoreNeo4j extends GraphStore {
     throws Exception {
     LOG.info("Phase " + currentPhase.ordinal() + ", ThreadID = " + threadId + ", Object = " + this);
 
-    if (db == null) {
-      LOG.info("Initializing db...");
-      String dbPath = p.getProperty("db_path", "neo4j-data");
-      String pageCacheMem = p.getProperty("page_cache_size", "1g");
-      boolean tuned = Boolean.valueOf(p.getProperty("tuned", "false"));
-      LOG.info("Data path = " + dbPath);
-      LOG.info("Tuned = " + tuned);
-      LOG.info("Page Cache Memory = " + pageCacheMem);
+    String server = p.getProperty("server", "localhost");
+    String port = p.getProperty("port", "7687");
+    LOG.info("Server = " + server + " port = " + port);
+    LinkStoreNeo4j.initializeDriver(server, port);
 
-      if (tuned) {
-        LOG.info("Initializing tuned database...");
-        db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath)
-          .setConfig(GraphDatabaseSettings.cache_type, "none")
-          .setConfig(GraphDatabaseSettings.pagecache_memory, pageCacheMem).newGraphDatabase();
-        LOG.info("Completed initializing tuned database.");
-      } else {
-        LOG.info("Initializing untuned database...");
-        db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
-        LOG.info("Completed initializing tuned database.");
-      }
-      LOG.info("Database initialization: " + db.toString());
-      registerShutdownHook(db);
-    }
-    if (idIndex == null) {
-      LOG.info("Initializing ID index...");
-      try (Transaction tx = db.beginTx()) {
-        idIndex = db.index().forNodes("identifier");
-        tx.success();
-      }
-      LOG.info("Database initialization: " + idIndex.toString());
-    }
+
     if (currentPhase == Phase.REQUEST) {
       long startId = Long.parseLong(p.getProperty("maxid1")) + 1;
       LOG.info("Request phase: setting startId to " + startId);
@@ -117,12 +113,9 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public long addNode(String dbid, Node node) throws Exception {
     long id;
-    try (Transaction tx = db.beginTx()) {
+    try (Transaction tx = session.beginTransaction()) {
       id = idGenerator.getAndIncrement();
-      org.neo4j.graphdb.Node neoNode = db.createNode();
-      neoNode.setProperty("id", id);
-      neoNode.setProperty("data", node.data);
-      idIndex.add(neoNode, "id", id);
+      session.run(createNodeStmt, nodeParams(id, node.type, node.data));
       tx.success();
     }
     return id;
@@ -135,13 +128,10 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public long[] bulkAddNodes(String dbid, List<Node> nodes) throws Exception {
     long ids[] = new long[nodes.size()];
     int i = 0;
-    try (Transaction tx = db.beginTx()) {
+    try (Transaction tx = session.beginTransaction()) {
       for (Node node : nodes) {
         long id = idGenerator.getAndIncrement();
-        org.neo4j.graphdb.Node neoNode = db.createNode();
-        neoNode.setProperty("id", id);
-        neoNode.setProperty("data", node.data);
-        idIndex.add(neoNode, "id", id);
+        session.run(createNodeStmt, nodeParams(id, node.type, node.data));
         ids[i++] = id;
       }
       tx.success();
@@ -158,12 +148,14 @@ public class LinkStoreNeo4j extends GraphStore {
    * @return null if not found, a Node with all fields filled in otherwise
    */
   @Override public Node getNode(String dbid, int type, long id) throws Exception {
-    org.neo4j.graphdb.Node neoNode;
-    try (Transaction tx = db.beginTx()) {
-      neoNode = IteratorUtil.firstOrNull(idIndex.get("id", id).iterator());
-      if (neoNode != null) {
+    try (Transaction tx = session.beginTransaction()) {
+      String getNodeStmt = "MATCH (node {id: {id}, type: {type}}) return node";
+      StatementResult result = tx.run(getNodeStmt, nodeParams(id, type));
+      if (result.hasNext()) {
+        Record record = result.next();
+        byte[] data = record.get("node.data").asString().getBytes();
         tx.success();
-        return new Node(id, 0, 0, 0, (byte[]) neoNode.getProperty("data"));
+        return new Node(id, type, 0, 0, data);
       }
       tx.success();
     }
@@ -176,18 +168,15 @@ public class LinkStoreNeo4j extends GraphStore {
    * @return true if the update was successful, false if not present
    */
   @Override public boolean updateNode(String dbid, Node node) throws Exception {
-    try (Transaction tx = db.beginTx()) {
-      org.neo4j.graphdb.Node neoNode = IteratorUtil.firstOrNull(idIndex.get("id", node.id).iterator());
-      if (neoNode == null) {
-        tx.failure();
-        return false;
-      }
-      neoNode.setProperty("id", node.id);
-      neoNode.setProperty("data", node.data);
-      idIndex.add(neoNode, "id", node.id);
+    boolean success;
+    try (Transaction tx = session.beginTransaction()) {
+      String updateNodeStmt =
+        "MATCH (node {id: {id}, type: {type}}) SET node.data = {data} RETURN node";
+      StatementResult result = tx.run(updateNodeStmt, nodeParams(node.id, node.type, node.data));
+      success = result.hasNext();
       tx.success();
     }
-    return true;
+    return success;
   }
 
   /**
@@ -196,31 +185,25 @@ public class LinkStoreNeo4j extends GraphStore {
    * @return true if the node was deleted, false if not present
    */
   @Override public boolean deleteNode(String dbid, int type, long id) throws Exception {
-    try (Transaction tx = db.beginTx()) {
-
-      org.neo4j.graphdb.Node neoNode = IteratorUtil.firstOrNull(idIndex.get("id", id).iterator());
-      if (neoNode == null) {
-        tx.failure();
-        return false;
-      }
-      for (Relationship relationship : neoNode.getRelationships()) {
-        relationship.delete();
-      }
-      idIndex.remove(neoNode);
-      neoNode.delete();
-      tx.success();
+    int deletionCount;
+    try (Transaction tx = session.beginTransaction()) {
+      String deleteNodeStmt = "MATCH (node {id: {id}, type: {type}}) DELETE node";
+      StatementResult result = tx.run(deleteNodeStmt, nodeParams(id, type));
+      deletionCount = result.consume().counters().nodesDeleted();
     }
-    return true;
+    return deletionCount > 0;
   }
 
   /**
    * Do any cleanup.  After this is called, store won't be reused
    */
   @Override public void close() {
+    session.close();
   }
 
   @Override public void clearErrors(int threadID) {
-    // Do nothing
+    session.close();
+    session = driver.session();
   }
 
   /**
@@ -228,37 +211,23 @@ public class LinkStoreNeo4j extends GraphStore {
    *
    * @return true if new link added, false if updated. Implementation is
    * optional, for informational purposes only.
-   * @throws Exception
+   * @throws Exception Arbitrary exception
    */
   @Override public boolean addLink(String dbid, Link a, boolean noinverse) throws Exception {
-    try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", a.id1).iterator());
-      final org.neo4j.graphdb.Node dst = IteratorUtil.firstOrNull(idIndex.get("id", a.id2).iterator());
-      if (src == null || dst == null) {
-        tx.failure();
-        return false;
-      }
-      Relationship rel = src.createRelationshipTo(dst, linkTypeToRelationshipType(a.link_type));
-      rel.setProperty("time", a.time);
-      rel.setProperty("data", a.data);
+    int creationCount;
+    try (Transaction tx = session.beginTransaction()) {
+      StatementResult result = session.run(createLinkStmt, linkParams(a));
+      creationCount = result.consume().counters().relationshipsCreated();
       tx.success();
     }
-    return true;
+    return creationCount > 0;
   }
 
   @Override public void addBulkLinks(String dbid, List<Link> links, boolean noinverse)
     throws Exception {
-    try (Transaction tx = db.beginTx()) {
+    try (Transaction tx = session.beginTransaction()) {
       for (Link a : links) {
-        final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", a.id1).iterator());
-        final org.neo4j.graphdb.Node dst = IteratorUtil.firstOrNull(idIndex.get("id", a.id2).iterator());
-        if (src == null || dst == null) {
-          tx.failure();
-          return;
-        }
-        Relationship rel = src.createRelationshipTo(dst, linkTypeToRelationshipType(a.link_type));
-        rel.setProperty("time", a.time);
-        rel.setProperty("data", a.data);
+        session.run(createLinkStmt, linkParams(a));
       }
       tx.success();
     }
@@ -274,28 +243,19 @@ public class LinkStoreNeo4j extends GraphStore {
    * @param expunge if true, delete permanently.  If false, hide instead
    * @return true if row existed. Implementation is optional, for informational
    * purposes only.
-   * @throws Exception
+   * @throws Exception Arbitrary exception
    */
   @Override public boolean deleteLink(String dbid, long id1, long link_type, long id2,
     boolean noinverse, boolean expunge) throws Exception {
-    try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
-      if (src == null) {
-        tx.failure();
-        return false;
-      }
-      Iterable<Relationship> rels =
-        src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
-      for (Relationship rel : rels) {
-        if ((long) rel.getEndNode().getProperty("id") == id2) {
-          rel.delete();
-          tx.success();
-          return true;
-        }
-      }
+    int deletionCount;
+    try (Transaction tx = session.beginTransaction()) {
+      String deleteLinkStmt =
+        "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2: {id: {id2}}) DELETE r";
+      StatementResult result = session.run(deleteLinkStmt, linkParams(id1, link_type, id2));
+      deletionCount = result.consume().counters().relationshipsDeleted();
       tx.success();
     }
-    return false;
+    return deletionCount > 0;
   }
 
   /**
@@ -303,52 +263,35 @@ public class LinkStoreNeo4j extends GraphStore {
    *
    * @return true if link found, false if new link created.  Implementation is
    * optional, for informational purposes only.
-   * @throws Exception
+   * @throws Exception Arbitrary exception
    */
   @Override public boolean updateLink(String dbid, Link a, boolean noinverse) throws Exception {
-    try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", a.id1).iterator());
-      final org.neo4j.graphdb.Node dst = IteratorUtil.firstOrNull(idIndex.get("id", a.id2).iterator());
-      if (src == null || dst == null) {
-        tx.failure();
-        return false;
-      }
-      Iterable<Relationship> rels =
-        src.getRelationships(linkTypeToRelationshipType(a.link_type), Direction.OUTGOING);
-      for (Relationship rel : rels) {
-        if ((long) rel.getEndNode().getProperty("id") == a.id2) {
-          rel.setProperty("time", a.time);
-          rel.setProperty("data", a.data);
-          tx.success();
-          return true;
-        }
-      }
-      tx.failure();
+    boolean success;
+    try (Transaction tx = session.beginTransaction()) {
+      String updateLinkStmt =
+        "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2: {id: {id2}}) SET r.time = {time}, r.data = {data} RETURN r";
+      StatementResult result = tx.run(updateLinkStmt, linkParams(a));
+      success = result.hasNext();
+      tx.success();
     }
-    return true;
+    return success;
   }
 
   /**
    * lookup using id1, type, id2
    * Returns hidden links.
    *
-   * @throws Exception
+   * @throws Exception Arbitrary exception
    */
   @Override public Link getLink(String dbid, long id1, long link_type, long id2) throws Exception {
-    try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
-      if (src == null) {
-        tx.failure();
-        return null;
-      }
-      Iterable<Relationship> rels =
-        src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
-
-      for (Relationship rel : rels) {
-        if ((long) rel.getEndNode().getProperty("id") == id2) {
-          return new Link(id1, link_type, id2, (byte) 0, (byte[]) rel.getProperty("data"), 0,
-            (long) rel.getProperty("time"));
-        }
+    try (Transaction tx = session.beginTransaction()) {
+      String getLinkStmt = "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2: {id: {id2}}) RETURN r";
+      StatementResult result = session.run(getLinkStmt, linkParams(id1, link_type, id2));
+      if (result.hasNext()) {
+        Record record = result.next();
+        long time = record.get("r.time").asLong();
+        byte[] data = record.get("r.data").asString().getBytes();
+        return new Link(id1, link_type, id2, (byte) 0, data, 0, time);
       }
       tx.success();
     }
@@ -361,21 +304,19 @@ public class LinkStoreNeo4j extends GraphStore {
    *
    * @return list of links in descending order of time, or null
    * if no matching links
-   * @throws Exception
+   * @throws Exception Arbitrary exception
    */
   @Override public Link[] getLinkList(String dbid, long id1, long link_type) throws Exception {
     ArrayList<Link> links = new ArrayList<>();
-    try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
-      if (src == null) {
-        tx.failure();
-        return null;
-      }
-      Iterable<Relationship> rels =
-        src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
-      for (Relationship rel : rels) {
-        links.add(new Link(id1, link_type, (long) rel.getEndNode().getProperty("id"), (byte) 0,
-          (byte[]) rel.getProperty("data"), 0, (long) rel.getProperty("time")));
+    try (Transaction tx = session.beginTransaction()) {
+      String getLinkListStmt = "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2) RETURN r, n2";
+      StatementResult result = session.run(getLinkListStmt, linkListParams(id1, link_type));
+      while (result.hasNext()) {
+        Record record = result.next();
+        long time = record.get("r.time").asLong();
+        byte[] data = record.get("r.data").asString().getBytes();
+        long id2 = record.get("n2.id").asLong();
+        links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
       tx.success();
     }
@@ -389,31 +330,26 @@ public class LinkStoreNeo4j extends GraphStore {
    *
    * @return list of links in descending order of time, or null
    * if no matching links
-   * @throws Exception
+   * @throws Exception Arbitrary exception
    */
   @Override public Link[] getLinkList(String dbid, long id1, long link_type, long minTimestamp,
     long maxTimestamp, int offset, int limit) throws Exception {
     ArrayList<Link> links = new ArrayList<>();
 
-    try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
-      if (src == null) {
-        tx.failure();
-        return null;
-      }
-      Iterable<Relationship> rels =
-        src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
-      byte unused = 0;
-      for (Relationship rel : rels) {
-        long id2 = (long) rel.getEndNode().getProperty("id");
-        long time = (long) rel.getProperty("time");
-        if (time >= minTimestamp && time <= maxTimestamp) {
-          links.add(new Link(id1, link_type, id2, unused, (byte[]) rel.getProperty("data"), 0, time));
-        }
+    try (Transaction tx = session.beginTransaction()) {
+      String getLinkList2Stmt =
+        "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2) WHERE r.time >= {min_ts} AND r.time <= {max_ts} RETURN r, n2";
+      StatementResult result =
+        session.run(getLinkList2Stmt, linkListParams(id1, link_type, minTimestamp, maxTimestamp));
+      while (result.hasNext()) {
+        Record record = result.next();
+        long time = record.get("r.time").asLong();
+        byte[] data = record.get("r.data").asString().getBytes();
+        long id2 = record.get("n2.id").asLong();
+        links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
       tx.success();
     }
-
     Collections.sort(links, linkComparator);
     return links.subList(offset, Math.min(links.size(), offset + limit))
       .toArray(new Link[Math.min(links.size(), limit)]);
@@ -421,16 +357,12 @@ public class LinkStoreNeo4j extends GraphStore {
 
   @Override public long countLinks(String dbid, long id1, long link_type) throws Exception {
     long count = 0;
-    try (Transaction tx = db.beginTx()) {
-      final org.neo4j.graphdb.Node src = IteratorUtil.firstOrNull(idIndex.get("id", id1).iterator());
-      if (src == null) {
-        tx.failure();
-        return 0;
-      }
-      Iterable<Relationship> rels =
-        src.getRelationships(linkTypeToRelationshipType(link_type), Direction.OUTGOING);
-      for (Relationship ignored : rels) {
-        count++;
+    try (Transaction tx = session.beginTransaction()) {
+      String countLinksStmt = "MATCH (n1 {id: {id1}}) -[r:{link_type}]-> (n2) RETURN count(r)";
+      StatementResult result = session.run(countLinksStmt, linkListParams(id1, link_type));
+      if (result.hasNext()) {
+        Record record = result.next();
+        count = record.get("count(r)").asLong();
       }
       tx.success();
     }
