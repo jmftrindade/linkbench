@@ -58,7 +58,7 @@ public class LinkStoreNeo4j extends GraphStore {
   }
 
   private String linkType(long link_type) {
-    return String.valueOf(link_type);
+    return "L" + String.valueOf(link_type);
   }
 
   private static synchronized void initializeDriver(String server, String port) {
