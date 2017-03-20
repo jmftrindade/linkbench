@@ -41,7 +41,7 @@ public class LinkStoreNeo4j extends GraphStore {
 
   private static Value linkParams(Link l) {
     return parameters("id1", l.id1, "id2", l.id2, "link_type", l.link_type, "time", l.time, "data",
-      l.data);
+      new String(l.data));
   }
 
   private static Value linkParams(long id1, long link_type, long id2) {
