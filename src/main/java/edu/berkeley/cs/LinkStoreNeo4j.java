@@ -1,10 +1,16 @@
 package edu.berkeley.cs;
 
-import com.facebook.LinkBench.*;
+import com.facebook.LinkBench.GraphStore;
+import com.facebook.LinkBench.Link;
+import com.facebook.LinkBench.Node;
+import com.facebook.LinkBench.Phase;
 import org.apache.log4j.Logger;
 import org.neo4j.driver.v1.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.neo4j.driver.v1.Values.parameters;
@@ -20,11 +26,6 @@ public class LinkStoreNeo4j extends GraphStore {
       return o1.time < o2.time ? 1 : -1;
     }
   };
-
-  private static String createNodeStmt = "CREATE (node {id: {id}, type: {type}, data: {data}})";
-
-  private static String createLinkStmt = "MATCH (n1 {id: {id1}}) MATCH (n2: {id: {id2}}) "
-    + "CREATE (n1)-[r:{link_type} {time: {time}, data: {data}}]->(n2)";
 
 
   private static Driver driver = null;
@@ -116,28 +117,11 @@ public class LinkStoreNeo4j extends GraphStore {
     long id;
     try (Transaction tx = session.beginTransaction()) {
       id = idGenerator.getAndIncrement();
+      String createNodeStmt = "CREATE (node {id: {id}, type: {type}, data: {data}})";
       session.run(createNodeStmt, nodeParams(id, node.type, node.data));
       tx.success();
     }
     return id;
-  }
-
-  @Override public int bulkLoadBatchSize() {
-    return 1024;
-  }
-
-  @Override public long[] bulkAddNodes(String dbid, List<Node> nodes) throws Exception {
-    long ids[] = new long[nodes.size()];
-    int i = 0;
-    try (Transaction tx = session.beginTransaction()) {
-      for (Node node : nodes) {
-        long id = idGenerator.getAndIncrement();
-        session.run(createNodeStmt, nodeParams(id, node.type, node.data));
-        ids[i++] = id;
-      }
-      tx.success();
-    }
-    return ids;
   }
 
   /**
@@ -217,25 +201,13 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public boolean addLink(String dbid, Link a, boolean noinverse) throws Exception {
     int creationCount;
     try (Transaction tx = session.beginTransaction()) {
+      String createLinkStmt = "MATCH (n1 {id: {id1}}) MATCH (n2: {id: {id2}}) "
+        + "CREATE (n1)-[r:{link_type} {time: {time}, data: {data}}]->(n2)";
       StatementResult result = session.run(createLinkStmt, linkParams(a));
       creationCount = result.consume().counters().relationshipsCreated();
       tx.success();
     }
     return creationCount > 0;
-  }
-
-  @Override public void addBulkLinks(String dbid, List<Link> links, boolean noinverse)
-    throws Exception {
-    try (Transaction tx = session.beginTransaction()) {
-      for (Link a : links) {
-        session.run(createLinkStmt, linkParams(a));
-      }
-      tx.success();
-    }
-  }
-
-  @Override public void addBulkCounts(String dbid, List<LinkCount> a) throws Exception {
-    // Do nothing.
   }
 
   /**
