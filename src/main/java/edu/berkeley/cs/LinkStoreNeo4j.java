@@ -3,6 +3,7 @@ package edu.berkeley.cs;
 import com.facebook.LinkBench.*;
 import org.apache.log4j.Logger;
 import org.neo4j.driver.v1.*;
+import org.neo4j.driver.v1.exceptions.TransientException;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -129,6 +130,9 @@ public class LinkStoreNeo4j extends GraphStore {
       String createNodeStmt = "CREATE (n:Node {id: {id}, type: {type}, data: {data}})";
       tx.run(createNodeStmt, nodeParams(id, node.type, node.data));
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return addNode(dbid, node);
     }
     return id;
   }
@@ -148,6 +152,9 @@ public class LinkStoreNeo4j extends GraphStore {
         ids[i++] = id;
       }
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return bulkAddNodes(dbid, nodes);
     }
     return ids;
   }
@@ -171,6 +178,9 @@ public class LinkStoreNeo4j extends GraphStore {
         return new Node(id, type, 0, 0, data);
       }
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return getNode(dbid, type, id);
     }
     return null;
   }
@@ -188,6 +198,9 @@ public class LinkStoreNeo4j extends GraphStore {
       StatementResult result = tx.run(updateNodeStmt, nodeParams(node.id, node.type, node.data));
       success = result.hasNext();
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return updateNode(dbid, node);
     }
     return success;
   }
@@ -204,6 +217,9 @@ public class LinkStoreNeo4j extends GraphStore {
       StatementResult result = tx.run(deleteNodeStmt, nodeParams(id, type));
       deletionCount = result.consume().counters().nodesDeleted();
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return deleteNode(dbid, type, id);
     }
     return deletionCount > 0;
   }
@@ -235,6 +251,9 @@ public class LinkStoreNeo4j extends GraphStore {
       StatementResult result = tx.run(createLinkStmt, linkParams(a));
       creationCount = result.consume().counters().relationshipsCreated();
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return addLink(dbid, a, noinverse);
     }
     return creationCount > 0;
   }
@@ -249,6 +268,9 @@ public class LinkStoreNeo4j extends GraphStore {
         tx.run(createLinkStmt, linkParams(a));
       }
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      addBulkLinks(dbid, links, noinverse);
     }
   }
 
@@ -273,6 +295,9 @@ public class LinkStoreNeo4j extends GraphStore {
       StatementResult result = tx.run(deleteLinkStmt, linkParams(id1, id2));
       deletionCount = result.consume().counters().relationshipsDeleted();
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return deleteLink(dbid, id1, link_type, id2, noinverse, expunge);
     }
     return deletionCount > 0;
   }
@@ -292,6 +317,9 @@ public class LinkStoreNeo4j extends GraphStore {
       StatementResult result = tx.run(updateLinkStmt, linkParams(a));
       success = result.hasNext();
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return updateLink(dbid, a, noinverse);
     }
     return success;
   }
@@ -315,6 +343,9 @@ public class LinkStoreNeo4j extends GraphStore {
         return new Link(id1, link_type, id2, (byte) 0, data, 0, time);
       }
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return getLink(dbid, id1, link_type, id2);
     }
     return null;
   }
@@ -341,6 +372,9 @@ public class LinkStoreNeo4j extends GraphStore {
         links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return getLinkList(dbid, id1, link_type);
     }
     Collections.sort(links, linkComparator);
     return links.toArray(new Link[links.size()]);
@@ -371,6 +405,9 @@ public class LinkStoreNeo4j extends GraphStore {
         links.add(new Link(id1, link_type, id2, (byte) 0, data, 0, time));
       }
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return getLinkList(dbid, id1, link_type, minTimestamp, maxTimestamp, offset, limit);
     }
     Collections.sort(links, linkComparator);
     return links.subList(offset, Math.min(links.size(), offset + limit))
@@ -388,6 +425,9 @@ public class LinkStoreNeo4j extends GraphStore {
         count = record.get("count(r)").asLong();
       }
       tx.success();
+    } catch (TransientException e) {
+      // Retry
+      return countLinks(dbid, id1, link_type);
     }
     return count;
   }
