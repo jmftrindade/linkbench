@@ -162,7 +162,7 @@ public class LinkStoreNeo4j extends GraphStore {
    */
   @Override public Node getNode(String dbid, int type, long id) throws Exception {
     try (Transaction tx = session.beginTransaction()) {
-      String getNodeStmt = "MATCH (n:Node {id: {id}, type: {type}}) return n";
+      String getNodeStmt = "MATCH (n:Node {id: {id}, type: {type}}) return n.data";
       StatementResult result = tx.run(getNodeStmt, nodeParams(id, type));
       if (result.hasNext()) {
         Record record = result.next();
@@ -200,7 +200,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public boolean deleteNode(String dbid, int type, long id) throws Exception {
     int deletionCount;
     try (Transaction tx = session.beginTransaction()) {
-      String deleteNodeStmt = "MATCH (n:Node {id: {id}, type: {type}}) DELETE n";
+      String deleteNodeStmt = "MATCH (n:Node {id: {id}, type: {type}}) DETACH DELETE n";
       StatementResult result = tx.run(deleteNodeStmt, nodeParams(id, type));
       deletionCount = result.consume().counters().nodesDeleted();
       tx.success();
@@ -252,8 +252,7 @@ public class LinkStoreNeo4j extends GraphStore {
     }
   }
 
-  @Override public void addBulkCounts(String dbid, List<LinkCount> a)
-    throws Exception {
+  @Override public void addBulkCounts(String dbid, List<LinkCount> a) throws Exception {
     // Do nothing
   }
 
@@ -306,7 +305,7 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public Link getLink(String dbid, long id1, long link_type, long id2) throws Exception {
     try (Transaction tx = session.beginTransaction()) {
       String getLinkStmt = "MATCH (n1:Node {id: {id1}})-[r:" + linkType(link_type)
-        + "]->(n2:Node {id: {id2}}) RETURN r";
+        + "]->(n2:Node {id: {id2}}) RETURN r.time, r.data";
       StatementResult result = tx.run(getLinkStmt, linkParams(id1, id2));
       if (result.hasNext()) {
         Record record = result.next();
@@ -331,8 +330,8 @@ public class LinkStoreNeo4j extends GraphStore {
   @Override public Link[] getLinkList(String dbid, long id1, long link_type) throws Exception {
     ArrayList<Link> links = new ArrayList<>();
     try (Transaction tx = session.beginTransaction()) {
-      String getLinkListStmt =
-        "MATCH (n1:Node {id: {id1}})-[r:" + linkType(link_type) + "]->(n2:Node) RETURN r, n2";
+      String getLinkListStmt = "MATCH (n1:Node {id: {id1}})-[r:" + linkType(link_type)
+        + "]->(n2:Node) RETURN r.time, r.data, n2.id";
       StatementResult result = tx.run(getLinkListStmt, linkListParams(id1));
       while (result.hasNext()) {
         Record record = result.next();
@@ -361,7 +360,7 @@ public class LinkStoreNeo4j extends GraphStore {
 
     try (Transaction tx = session.beginTransaction()) {
       String getLinkList2Stmt = "MATCH (n1:Node {id: {id1}})-[r:" + linkType(link_type)
-        + "]->(n2:Node) WHERE r.time >= {min_ts} AND r.time <= {max_ts} RETURN r, n2";
+        + "]->(n2:Node) WHERE r.time >= {min_ts} AND r.time <= {max_ts} RETURN r.time, r.data, n2.id";
       StatementResult result =
         tx.run(getLinkList2Stmt, linkListParams(id1, minTimestamp, maxTimestamp));
       while (result.hasNext()) {
