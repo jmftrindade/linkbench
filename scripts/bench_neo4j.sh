@@ -3,6 +3,9 @@
 sbin="`dirname "$0"`"
 sbin="`cd "$sbin"; pwd`"
 
+server=$1
+shift
+
 QOPTS=""
 if [ "$#" = "0" ]; then
   query_type="fb"
@@ -23,30 +26,14 @@ fi
 echo "Query opts=\'$QOPTS\'"
 echo "Query type=\'$query_type\'"
 
-db_path="/mnt/ram/neo4j"
-src_path="/home/ec2-user/neo4j"
-page_cache=`du ${src_path}/*store.db* | awk '{ x += $1 } END { printf("%.0f\n", x*1.2/(1024*1024)) }'`
-pc=$(($page_cache>230?230:$page_cache))g
-
-function cache() {
-  echo "Caching data at $db_path"
-  find $db_path/ -name "*store.db*" -type f -exec dd if={} of=/dev/null bs=1M 2>/dev/null \;
-  echo "Caching complete"
+function load() {
+  host=$1
+  ssh $host $sbin/load_data.sh
 }
 
-#cache
-
-function refresh() {
-  echo "Cleaning previous run..."
-  rm -rf $db_path
-  echo "Creating fresh copy..."
-  cp -r $src_path $db_path
-}
-
-echo "pc=$pc"
+conf=$sbin/../config/LinkConfigNeo4j.properties
 for num_threads in 1 2 4 8 16 32; do
-  for tuned in "true" "false"; do
-    refresh
-    $sbin/../bin/linkbench -c $sbin/../config/LinkConfigNeo4j.properties -r -L $sbin/../neo4j.t${num_threads}.p${pc}.q${query_type}.o${tuned}.log -Drequesters=${num_threads} -Dpage_cache_size=$pc -Ddb_path=$db_path -Dtuned=$tuned $QOPTS
-  done
+  load $server
+  output=$sbin/../results/neo4j.t${num_threads}.q${query_type}.txt
+  $sbin/../bin/linkbench -c $conf -r -L $output -Drequesters=${num_threads} -Dserver=$server $QOPTS
 done
