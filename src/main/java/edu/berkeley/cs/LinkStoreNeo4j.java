@@ -3,6 +3,7 @@ package edu.berkeley.cs;
 import com.facebook.LinkBench.*;
 import org.apache.log4j.Logger;
 import org.neo4j.driver.v1.*;
+import org.neo4j.driver.v1.exceptions.ClientException;
 import org.neo4j.driver.v1.exceptions.TransientException;
 
 import java.util.*;
@@ -254,6 +255,8 @@ public class LinkStoreNeo4j extends GraphStore {
     } catch (TransientException e) {
       // Retry
       return addLink(dbid, a, noinverse);
+    } catch (ClientException e) {
+      return false;
     }
     return creationCount > 0;
   }
