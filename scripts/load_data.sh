@@ -16,3 +16,4 @@ function refresh() {
 $HOME/neo4j-community-3.1.2/bin/neo4j stop
 refresh
 $HOME/neo4j-community-3.1.2/bin/neo4j start
+sleep 5
