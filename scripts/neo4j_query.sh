@@ -2,7 +2,6 @@
 
 sbin="`dirname "$0"`"
 sbin="`cd "$sbin"; pwd`"
-dataset=$1
 
 query_types=(
   addlink
@@ -15,16 +14,6 @@ query_types=(
   addnode
   updatenode
   deletenode
-)
-
-mutate=(
-  #addlink
-  #deletelink
-  updatelink
-  #addnode
-  #deletenode
-  updatenode
-  addlink
 )
 
 function qopts() {
@@ -40,7 +29,9 @@ function qopts() {
   echo $QOPTS_
 }
 
-for query_type in ${mutate[@]}; do
+for query_type in ${query_types[@]}; do
   QOPTS=`qopts $query_type`
-  $sbin/bench_neo4j.sh $dataset $QOPTS
+  $sbin/bench_neo4j.sh $QOPTS
 done
+
+$sbin/bench_neo4j.sh 
