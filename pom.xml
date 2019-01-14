@@ -84,11 +84,13 @@
       <artifactId>titan-cassandra</artifactId>
       <version>0.5.4</version>
     </dependency>
+    <!-- this link is broken
     <dependency>
       <groupId>amplab</groupId>
       <artifactId>zipg-client</artifactId>
       <version>0.1.0</version>
     </dependency>
+    -->
   </dependencies>
 
   <profiles>
