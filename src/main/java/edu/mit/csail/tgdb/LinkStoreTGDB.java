@@ -97,7 +97,12 @@ public class LinkStoreTGDB extends GraphStore {
   public long[] bulkAddNodes(String dbid, List<Node> nodes) throws Exception {
     long ids[] = new long[nodes.size()];
 
-    // TODO
+    int i = 0;
+    for (Node node : nodes) {
+      long id = idGenerator.getAndIncrement();
+      ids[i++] = id;
+      // TODO
+    }
 
     return ids;
   }
