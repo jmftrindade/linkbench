@@ -1,0 +1,3 @@
+[submodule "tgdb_bkp"]
+	path = tgdb_bkp
+	url = git@github.com:jmftrindade/tgdb_bkp.git
