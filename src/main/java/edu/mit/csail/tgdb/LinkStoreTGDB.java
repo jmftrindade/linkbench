@@ -42,12 +42,7 @@ public class LinkStoreTGDB extends GraphStore {
     LOG.info("Initializing TGDB...");
 
     dbClient = new TGDBClient("localhost", 50051);
-    try {
-      dbClient.initialize();
-    } finally {
-      // FIXME: remove shutdown from here.
-      dbClient.shutdown();
-    }
+    dbClient.initialize();
 
     LOG.info("Initialization complete.");
   }
@@ -101,12 +96,21 @@ public class LinkStoreTGDB extends GraphStore {
   public long[] bulkAddNodes(String dbid, List<Node> nodes) throws Exception {
     long ids[] = new long[nodes.size()];
 
-    int i = 0;
-    for (Node node : nodes) {
-      long id = idGenerator.getAndIncrement();
-      ids[i++] = id;
-      // TODO
+    if (nodes.size() == 0) {
+      return ids;
     }
+
+    int i = 0;
+    ListIterator<Node> iterator = nodes.listIterator();
+    while (iterator.hasNext()) {
+      long id = idGenerator.getAndIncrement();
+      Node n = iterator.next();
+      n.id = id;
+      iterator.set(n);
+      ids[i++] = id;
+    }
+
+    dbClient.addNodes(nodes);
 
     return ids;
   }
