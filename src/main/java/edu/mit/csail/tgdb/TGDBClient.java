@@ -42,14 +42,16 @@ public class TGDBClient {
   }
 
   /** ======= Service API ====== */
-  public void addNode(Node node) {
-    AddNodeRequest request = AddNodeRequest.newBuilder().build();
+  public void addNode(com.facebook.LinkBench.Node node) {
+    AddNodeRequest request =
+        AddNodeRequest.newBuilder()
+            .setNode(edu.mit.csail.tgdb.Node.newBuilder().setId(node.id))
+            .build();
     AddNodeResponse response;
 
     try {
       response = blockingStub.addNode(request);
     } catch (StatusRuntimeException e) {
-
       logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
     }
   }

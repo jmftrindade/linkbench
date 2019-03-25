@@ -82,6 +82,10 @@ public class LinkStoreTGDB extends GraphStore {
 
     // Use this as node id for the node being added.
     id = idGenerator.getAndIncrement();
+    LOG.info("node.id = " + node.id + ", gen'ed id=" + id);
+    node.id = id;
+
+    dbClient.addNode(node);
 
     return id;
   }
