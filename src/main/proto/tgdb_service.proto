@@ -12,10 +12,16 @@ import "google/protobuf/struct.proto";
 package tgdb_service;
 
 // =============================================================================
-// LinkStore API for LinkBench. For documentation, see:
+// Implements both LinkStore and NodeStore APIs for LinkBench. See:
+//
 // https://github.com/mdcallag/linkbench/blob/master/src/main/java/com/facebook/LinkBench/LinkStore.java
+// https://github.com/mdcallag/linkbench/blob/master/src/main/java/com/facebook/LinkBench/NodeStore.java
 // =============================================================================
 service TGDBLinkStore {
+  // ---------- NodeStore API ----------
+  rpc AddNode(AddNodeRequest) returns (AddNodeResponse) {}
+
+  // ---------- LinkStore API ----------
   // Initialize the link store object.
   rpc Initialize(InitializeRequest) returns (InitializeResponse) {}
 
@@ -36,6 +42,9 @@ service TGDBLinkStore {
   // time.
   rpc GetLinksById1(GetLinksById1Request) returns (GetLinksById1Response) {}
 }
+
+message AddNodeRequest { Node node = 1; }
+message AddNodeResponse {}
 
 message InitializeRequest {}
 message InitializeResponse {}

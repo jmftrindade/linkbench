@@ -42,6 +42,18 @@ public class TGDBClient {
   }
 
   /** ======= Service API ====== */
+  public void addNode(Node node) {
+    AddNodeRequest request = AddNodeRequest.newBuilder().build();
+    AddNodeResponse response;
+
+    try {
+      response = blockingStub.addNode(request);
+    } catch (StatusRuntimeException e) {
+
+      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+    }
+  }
+
   public void initialize() {
     InitializeRequest request = InitializeRequest.newBuilder().build();
     InitializeResponse response;
