@@ -32,6 +32,11 @@ public class LinkStoreTGDB extends GraphStore {
   @Override
   public synchronized void initialize(Properties p, Phase currentPhase,
                                       int threadId) throws Exception {
+    if (dbClient != null) {
+      LOG.warn("TGDB already initialized. Returning.");
+      return;
+    }
+
     LOG.info("Phase " + currentPhase.ordinal() + ", ThreadID = " + threadId +
              ", Object = " + this);
     LOG.info("Initializing TGDB...");
