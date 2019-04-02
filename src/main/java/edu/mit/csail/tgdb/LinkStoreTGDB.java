@@ -159,7 +159,7 @@ public class LinkStoreTGDB extends GraphStore {
    */
   @Override
   public void close() {
-    // TODO
+    dbClient.shutdown();
   }
 
   @Override
@@ -177,6 +177,9 @@ public class LinkStoreTGDB extends GraphStore {
   @Override
   public boolean addLink(String dbid, Link a, boolean noinverse)
       throws Exception {
+    dbClient.addLink(a);
+
+    // TODO: only return true if link is new.
     return true;
   }
 

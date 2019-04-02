@@ -1,8 +1,8 @@
 package edu.mit.csail.tgdb;
 
 import com.google.protobuf.Message;
-import edu.mit.csail.tgdb.TGDBLinkStoreGrpc.TGDBLinkStoreBlockingStub;
-import edu.mit.csail.tgdb.TGDBLinkStoreGrpc.TGDBLinkStoreStub;
+import edu.mit.csail.tgdb.TGDBStoreGrpc.TGDBStoreBlockingStub;
+import edu.mit.csail.tgdb.TGDBStoreGrpc.TGDBStoreStub;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
@@ -42,31 +42,15 @@ public class TGDBClient {
   }
 
   /** ======= Service API ====== */
-  public void addNode(com.facebook.LinkBench.Node node) {
-    AddNodeRequest request =
-        AddNodeRequest.newBuilder()
-            .setNode(edu.mit.csail.tgdb.Node.newBuilder().setId(node.id))
+  public void addNode(Node node) {
+    AddVertexRequest request =
+        AddVertexRequest.newBuilder()
+            .setVertex(Vertex.newBuilder().setId(node.id))
             .build();
-    AddNodeResponse response;
+    AddEdgeResponse response;
 
     try {
-      response = blockingStub.addNode(request);
-    } catch (StatusRuntimeException e) {
-      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-    }
-  }
-
-  public void addNodes(List<com.facebook.LinkBench.Node> nodes) {
-    AddNodesRequest.Builder requestBuilder = AddNodesRequest.newBuilder();
-    for (com.facebook.LinkBench.Node node : nodes) {
-      requestBuilder.addNodes(
-          edu.mit.csail.tgdb.Node.newBuilder().setId(node.id).build());
-    }
-    AddNodesRequest request = requestBuilder.build();
-    AddNodesResponse response;
-
-    try {
-      response = blockingStub.addNodes(request);
+      response = blockingStub.addEdge(request);
     } catch (StatusRuntimeException e) {
       logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
     }
