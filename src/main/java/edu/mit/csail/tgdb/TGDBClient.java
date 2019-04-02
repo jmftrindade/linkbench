@@ -93,6 +93,26 @@ public class TGDBClient {
     }
   }
 
+  public void addLinks(List<Link> links) {
+    AddEdgesRequest.Builder requestBuilder = AddEdgesRequest.newBuilder();
+    for (Link link : links) {
+      // TODO: set data properties, etc.
+      requestBuilder.addEdges(Edge.newBuilder()
+                                  .setId1(link.id1)
+                                  .setId2(link.id2)
+                                  .setTime(link.time)
+                                  .build());
+    }
+    AddEdgesRequest request = requestBuilder.build();
+    AddEdgesResponse response;
+
+    try {
+      response = blockingStub.addEdges(request);
+    } catch (StatusRuntimeException e) {
+      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+    }
+  }
+
   public void initialize() {
     InitializeRequest request = InitializeRequest.newBuilder().build();
     InitializeResponse response;

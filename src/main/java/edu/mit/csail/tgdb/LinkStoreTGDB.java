@@ -159,11 +159,13 @@ public class LinkStoreTGDB extends GraphStore {
    */
   @Override
   public void close() {
-    try {
-      dbClient.shutdown();
-    } catch (InterruptedException e) {
-      LOG.warn("Could not close TGDB client: " + e.getMessage());
-    }
+    /*
+        try {
+          dbClient.shutdown();
+        } catch (InterruptedException e) {
+          LOG.warn("Could not close TGDB client: " + e.getMessage());
+        }
+    */
   }
 
   @Override
@@ -190,7 +192,7 @@ public class LinkStoreTGDB extends GraphStore {
   @Override
   public void addBulkLinks(String dbid, List<Link> links, boolean noinverse)
       throws Exception {
-    // TODO
+    dbClient.addLinks(links);
   }
 
   @Override
