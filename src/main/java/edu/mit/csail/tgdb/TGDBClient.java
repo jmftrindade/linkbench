@@ -1,5 +1,7 @@
 package edu.mit.csail.tgdb;
 
+import com.facebook.LinkBench.Node;
+import com.facebook.LinkBench.Link;
 import com.google.protobuf.Message;
 import edu.mit.csail.tgdb.TGDBStoreGrpc.TGDBStoreBlockingStub;
 import edu.mit.csail.tgdb.TGDBStoreGrpc.TGDBStoreStub;
@@ -22,8 +24,8 @@ public class TGDBClient {
       Logger.getLogger(TGDBClient.class.getName());
 
   private final ManagedChannel channel;
-  private final TGDBLinkStoreBlockingStub blockingStub;
-  private final TGDBLinkStoreStub asyncStub;
+  private final TGDBStoreBlockingStub blockingStub;
+  private final TGDBStoreStub asyncStub;
 
   /** Construct client for TGDB server at host:port  */
   public TGDBClient(String host, int port) {
@@ -33,8 +35,8 @@ public class TGDBClient {
   /** Construct client using the existing channel */
   public TGDBClient(ManagedChannelBuilder<?> channelBuilder) {
     channel = channelBuilder.build();
-    blockingStub = TGDBLinkStoreGrpc.newBlockingStub(channel);
-    asyncStub = TGDBLinkStoreGrpc.newStub(channel);
+    blockingStub = TGDBStoreGrpc.newBlockingStub(channel);
+    asyncStub = TGDBStoreGrpc.newStub(channel);
   }
 
   public void shutdown() throws InterruptedException {
@@ -43,10 +45,45 @@ public class TGDBClient {
 
   /** ======= Service API ====== */
   public void addNode(Node node) {
+    // TODO: set data properties, etc.
     AddVertexRequest request =
         AddVertexRequest.newBuilder()
-            .setVertex(Vertex.newBuilder().setId(node.id))
+            .setVertex(Vertex.newBuilder().setId(node.id).build())
             .build();
+    AddVertexResponse response;
+
+    try {
+      response = blockingStub.addVertex(request);
+    } catch (StatusRuntimeException e) {
+      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+    }
+  }
+
+  public void addNodes(List<Node> nodes) {
+    AddVerticesRequest.Builder requestBuilder = AddVerticesRequest.newBuilder();
+    for (Node node : nodes) {
+      // TODO: set data properties, etc.
+      requestBuilder.addVertices(Vertex.newBuilder().setId(node.id).build());
+    }
+    AddVerticesRequest request = requestBuilder.build();
+    AddVerticesResponse response;
+
+    try {
+      response = blockingStub.addVertices(request);
+    } catch (StatusRuntimeException e) {
+      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+    }
+  }
+
+  public void addLink(Link link) {
+    // TODO: set data properties, etc.
+    AddEdgeRequest request = AddEdgeRequest.newBuilder()
+                                 .setEdge(Edge.newBuilder()
+                                              .setId1(link.id1)
+                                              .setId2(link.id2)
+                                              .setTime(link.time)
+                                              .build())
+                                 .build();
     AddEdgeResponse response;
 
     try {
