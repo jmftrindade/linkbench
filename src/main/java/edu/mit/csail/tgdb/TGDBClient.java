@@ -2,7 +2,11 @@ package edu.mit.csail.tgdb;
 
 import com.facebook.LinkBench.Node;
 import com.facebook.LinkBench.Link;
+import com.google.protobuf.Any;
 import com.google.protobuf.Message;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Value;
+
 import edu.mit.csail.tgdb.TGDBStoreGrpc.TGDBStoreBlockingStub;
 import edu.mit.csail.tgdb.TGDBStoreGrpc.TGDBStoreStub;
 import io.grpc.ManagedChannel;
@@ -11,6 +15,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -45,11 +50,17 @@ public class TGDBClient {
 
   /** ======= Service API ====== */
   public void addNode(Node node) {
-    // TODO: set data properties, etc.
-    AddVertexRequest request =
-        AddVertexRequest.newBuilder()
-            .setVertex(Vertex.newBuilder().setId(node.id).build())
-            .build();
+    // Set data properties.
+    Struct.Builder struct = Struct.newBuilder();
+    struct.putFields(
+        "data",
+        Value.newBuilder().setStringValue(Arrays.toString(node.data)).build());
+    AddVertexRequest request = AddVertexRequest.newBuilder()
+                                   .setVertex(Vertex.newBuilder()
+                                                  .setId(node.id)
+                                                  .setProperties(struct.build())
+                                                  .build())
+                                   .build();
     AddVertexResponse response;
 
     try {
@@ -62,8 +73,15 @@ public class TGDBClient {
   public void addNodes(List<Node> nodes) {
     AddVerticesRequest.Builder requestBuilder = AddVerticesRequest.newBuilder();
     for (Node node : nodes) {
-      // TODO: set data properties, etc.
-      requestBuilder.addVertices(Vertex.newBuilder().setId(node.id).build());
+      // Set data properties.
+      Struct.Builder struct = Struct.newBuilder();
+      struct.putFields("data", Value.newBuilder()
+                                   .setStringValue(Arrays.toString(node.data))
+                                   .build());
+      requestBuilder.addVertices(Vertex.newBuilder()
+                                     .setId(node.id)
+                                     .setProperties(struct.build())
+                                     .build());
     }
     AddVerticesRequest request = requestBuilder.build();
     AddVerticesResponse response;
@@ -76,12 +94,18 @@ public class TGDBClient {
   }
 
   public void addLink(Link link) {
-    // TODO: set data properties, etc.
+    Struct.Builder struct = Struct.newBuilder();
+    struct.putFields(
+        "data",
+        Value.newBuilder().setStringValue(Arrays.toString(link.data)).build());
+    struct.putFields("version",
+                     Value.newBuilder().setNumberValue(link.version).build());
     AddEdgeRequest request = AddEdgeRequest.newBuilder()
                                  .setEdge(Edge.newBuilder()
                                               .setId1(link.id1)
                                               .setId2(link.id2)
                                               .setTime(link.time)
+                                              .setProperties(struct.build())
                                               .build())
                                  .build();
     AddEdgeResponse response;
@@ -96,11 +120,18 @@ public class TGDBClient {
   public void addLinks(List<Link> links) {
     AddEdgesRequest.Builder requestBuilder = AddEdgesRequest.newBuilder();
     for (Link link : links) {
-      // TODO: set data properties, etc.
+      // Set data properties.
+      Struct.Builder struct = Struct.newBuilder();
+      struct.putFields("data", Value.newBuilder()
+                                   .setStringValue(Arrays.toString(link.data))
+                                   .build());
+      struct.putFields("version",
+                       Value.newBuilder().setNumberValue(link.version).build());
       requestBuilder.addEdges(Edge.newBuilder()
                                   .setId1(link.id1)
                                   .setId2(link.id2)
                                   .setTime(link.time)
+                                  .setProperties(struct.build())
                                   .build());
     }
     AddEdgesRequest request = requestBuilder.build();
