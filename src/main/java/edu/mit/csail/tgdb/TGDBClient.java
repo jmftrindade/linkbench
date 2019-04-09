@@ -144,6 +144,22 @@ public class TGDBClient {
     }
   }
 
+  public Link getLink(long id1, long link_type, long id2) {
+    GetEdgeRequest.Builder requestBuilder = GetEdgeRequest.newBuilder();
+    requestBuilder.setId1(id1).setEdgeType(link_type).setId2(id2);
+    GetEdgeRequest request = requestBuilder.build();
+    GetEdgeResponse response;
+
+    try {
+      response = blockingStub.getEdge(request);
+    } catch (StatusRuntimeException e) {
+      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+    }
+
+    // FIXME: return the actual link.
+    return null;
+  }
+
   public void initialize() {
     InitializeRequest request = InitializeRequest.newBuilder().build();
     InitializeResponse response;
