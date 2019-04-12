@@ -2,6 +2,7 @@ package edu.mit.csail.tgdb;
 
 import com.facebook.LinkBench.Node;
 import com.facebook.LinkBench.Link;
+import com.facebook.LinkBench.LinkStore;
 import com.google.protobuf.Any;
 import com.google.protobuf.Message;
 import com.google.protobuf.Struct;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -126,7 +128,9 @@ public class TGDBClient {
                                    .setStringValue(Arrays.toString(link.data))
                                    .build());
       struct.putFields("version",
-                       Value.newBuilder().setNumberValue(link.version).build());
+                       Value.newBuilder()
+                           .setNumberValue((double)link.version * 1.0)
+                           .build());
       requestBuilder.addEdges(Edge.newBuilder()
                                   .setId1(link.id1)
                                   .setId2(link.id2)
@@ -148,7 +152,7 @@ public class TGDBClient {
     GetEdgeRequest.Builder requestBuilder = GetEdgeRequest.newBuilder();
     requestBuilder.setId1(id1).setEdgeType(link_type).setId2(id2);
     GetEdgeRequest request = requestBuilder.build();
-    GetEdgeResponse response;
+    GetEdgeResponse response = null;
 
     try {
       response = blockingStub.getEdge(request);
@@ -156,8 +160,21 @@ public class TGDBClient {
       logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
     }
 
-    // FIXME: return the actual link.
-    return null;
+    if (response == null || !response.hasEdge()) {
+      return null;
+    }
+
+    edu.mit.csail.tgdb.Edge e = response.getEdge();
+    byte[] data = null;
+    int version = 0;
+    if (e.hasProperties()) {
+      Map<String, Value> fields = e.getProperties().getFields();
+      String d = new String(fields.get("data").getStringValue());
+      data = d.getBytes();
+      version = (int)fields.get("version").getNumberValue();
+    }
+    return new Link(e.getId1(), e.getEdgeType(), e.getId2(),
+                    LinkStore.VISIBILITY_DEFAULT, data, version, e.getTime());
   }
 
   public void initialize() {
