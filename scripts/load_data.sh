@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
+# NOTE: needs to be run as superuser.
+
 sbin="`dirname "$0"`"
 sbin="`cd "$sbin"; pwd`"
 
-db_path="/mnt/ram/neo4j"
-src_path="/home/ec2-user/neo4j"
+# NOTE: /mnt/tmpfs/neo4j_data needs to be mounted first, obvs.
+db_path="/mnt/tmpfs/neo4j_data"
+src_path="/tmp/neo4j_data"
 
 function refresh() {
   echo "Cleaning previous run..."
@@ -13,7 +16,7 @@ function refresh() {
   cp -r $src_path $db_path
 }
 
-$HOME/neo4j-community-3.1.2/bin/neo4j stop
+systemctl stop neo4j
 refresh
-$HOME/neo4j-community-3.1.2/bin/neo4j start
-sleep 5
+systemctl start neo4j
+sleep 10

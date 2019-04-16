@@ -50,13 +50,13 @@ fi
 
 echo "Using java at: $JAVA"
 
-JAVA_HEAP_MAX=-Xmx8g
+JAVA_HEAP_MAX=-Xmx32g
 
 # check envvars which might override default args
 if [ "$HEAPSIZE" != "" ]; then
-  #echo "run with heapsize $HEAPSIZE"
+  echo "run with heapsize $HEAPSIZE"
   JAVA_HEAP_MAX="-Xmx""$HEAPSIZE""m"
-  #echo $JAVA_HEAP_MAX
+  echo $JAVA_HEAP_MAX
 fi
 
 # CLASSPATH initially contains $CONF_DIR
