@@ -9,3 +9,5 @@ out
 .idea
 .DS_Store
 
+# Maven stuff
+.factorypath
