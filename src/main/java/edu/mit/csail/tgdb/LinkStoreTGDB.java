@@ -125,9 +125,7 @@ public class LinkStoreTGDB extends GraphStore {
    */
   @Override
   public Node getNode(String dbid, int type, long id) throws Exception {
-    // TODO
-
-    return null;
+    return dbClient.getNode(type, id);
   }
 
   /**

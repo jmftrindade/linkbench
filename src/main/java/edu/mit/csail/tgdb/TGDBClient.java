@@ -57,9 +57,14 @@ public class TGDBClient {
     struct.putFields(
         "data",
         Value.newBuilder().setStringValue(Arrays.toString(node.data)).build());
+    struct.putFields("version",
+                     Value.newBuilder().setNumberValue(node.version).build());
+
     AddVertexRequest request = AddVertexRequest.newBuilder()
                                    .setVertex(Vertex.newBuilder()
                                                   .setId(node.id)
+                                                  .setType(node.type)
+                                                  .setTime(node.time)
                                                   .setProperties(struct.build())
                                                   .build())
                                    .build();
@@ -80,8 +85,13 @@ public class TGDBClient {
       struct.putFields("data", Value.newBuilder()
                                    .setStringValue(Arrays.toString(node.data))
                                    .build());
+      struct.putFields("version",
+                       Value.newBuilder().setNumberValue(node.version).build());
+
       requestBuilder.addVertices(Vertex.newBuilder()
                                      .setId(node.id)
+                                     .setType(node.type)
+                                     .setTime(node.time)
                                      .setProperties(struct.build())
                                      .build());
     }
@@ -170,11 +180,15 @@ public class TGDBClient {
 
     edu.mit.csail.tgdb.Edge e = response.getEdge();
     byte[] data = null;
+
+    // XXX: linkbench defines version as long for nodes, and as int for links.
     int version = 0;
     if (e.hasProperties()) {
       Map<String, Value> fields = e.getProperties().getFields();
       String d = new String(fields.get("data").getStringValue());
       data = d.getBytes();
+
+      // XXX: linkbench defines version as long for nodes, and as int for links.
       version = (int)fields.get("version").getNumberValue();
     }
     return new Link(e.getSrcId(), e.getType(), e.getDstId(),
@@ -183,11 +197,36 @@ public class TGDBClient {
   }
 
   public Node getNode(int type, long id) {
-    /*
     GetVertexRequest.Builder requestBuilder = GetVertexRequest.newBuilder();
-    requestBuilder.set
-    */
-    return null;
+    requestBuilder.setId(id).setType(type);
+    GetVertexRequest request = requestBuilder.build();
+    GetVertexResponse response = null;
+
+    try {
+      response = blockingStub.getVertex(request);
+    } catch (StatusRuntimeException e) {
+      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+    }
+
+    if (response == null || !response.hasVertex()) {
+      return null;
+    }
+
+    Vertex v = response.getVertex();
+    byte[] data = null;
+
+    // XXX: linkbench defines version as long for nodes, and as int for links.
+    long version = 0;
+    if (v.hasProperties()) {
+      Map<String, Value> fields = v.getProperties().getFields();
+      String d = new String(fields.get("data").getStringValue());
+      data = d.getBytes();
+
+      // XXX: linkbench defines version as long for nodes, and as int for links.
+      version = (long)fields.get("version").getNumberValue();
+    }
+
+    return new Node(v.getId(), v.getType(), version, v.getTime(), data);
   }
 
   public void initialize() {
