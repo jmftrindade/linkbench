@@ -182,6 +182,14 @@ public class TGDBClient {
                     e.getStartTime());
   }
 
+  public Node getNode(int type, long id) {
+    /*
+    GetVertexRequest.Builder requestBuilder = GetVertexRequest.newBuilder();
+    requestBuilder.set
+    */
+    return null;
+  }
+
   public void initialize() {
     InitializeRequest request = InitializeRequest.newBuilder().build();
     InitializeResponse response;
