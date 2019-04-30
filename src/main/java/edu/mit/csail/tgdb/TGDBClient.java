@@ -102,11 +102,13 @@ public class TGDBClient {
         Value.newBuilder().setStringValue(Arrays.toString(link.data)).build());
     struct.putFields("version",
                      Value.newBuilder().setNumberValue(link.version).build());
+    // XXX: Set +INF as end_time?
     AddEdgeRequest request = AddEdgeRequest.newBuilder()
                                  .setEdge(Edge.newBuilder()
-                                              .setId1(link.id1)
-                                              .setId2(link.id2)
-                                              .setTime(link.time)
+                                              .setSrcId(link.id1)
+                                              .setType(link.link_type)
+                                              .setDstId(link.id2)
+                                              .setStartTime(link.time)
                                               .setProperties(struct.build())
                                               .build())
                                  .build();
@@ -131,10 +133,12 @@ public class TGDBClient {
                        Value.newBuilder()
                            .setNumberValue((double)link.version * 1.0)
                            .build());
+      // XXX: Set +INF as end_time?
       requestBuilder.addEdges(Edge.newBuilder()
-                                  .setId1(link.id1)
-                                  .setId2(link.id2)
-                                  .setTime(link.time)
+                                  .setSrcId(link.id1)
+                                  .setType(link.link_type)
+                                  .setDstId(link.id2)
+                                  .setStartTime(link.time)
                                   .setProperties(struct.build())
                                   .build());
     }
@@ -150,7 +154,7 @@ public class TGDBClient {
 
   public Link getLink(long id1, long link_type, long id2) {
     GetEdgeRequest.Builder requestBuilder = GetEdgeRequest.newBuilder();
-    requestBuilder.setId1(id1).setEdgeType(link_type).setId2(id2);
+    requestBuilder.setSrcId(id1).setType(link_type).setDstId(id2);
     GetEdgeRequest request = requestBuilder.build();
     GetEdgeResponse response = null;
 
@@ -173,8 +177,9 @@ public class TGDBClient {
       data = d.getBytes();
       version = (int)fields.get("version").getNumberValue();
     }
-    return new Link(e.getId1(), e.getEdgeType(), e.getId2(),
-                    LinkStore.VISIBILITY_DEFAULT, data, version, e.getTime());
+    return new Link(e.getSrcId(), e.getType(), e.getDstId(),
+                    LinkStore.VISIBILITY_DEFAULT, data, version,
+                    e.getStartTime());
   }
 
   public void initialize() {
