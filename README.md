@@ -4,7 +4,7 @@
 
 - - -  
 
-Joana's Notes to Self
+TGDB Adapter for Linkbench
 ====================
 
 (Optional) pickup latest changes from TGDB service if needed:
