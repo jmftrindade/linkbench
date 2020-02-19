@@ -14,7 +14,8 @@ $ mvn clean package -DskipTests
 
 Run (after starting TGDB service on another terminal):
 ```
-$ ./bin/linkbench -c config/LinkConfigTGDB.properties  -l
+$ ./bin/linkbench -c config/LinkConfigTGDB.properties  -l  # load phase
+$ ./bin/linkbench -c config/LinkConfigTGDB.properties  -l  # request phase
 ```
 
 LinkBench Overview
