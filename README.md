@@ -18,6 +18,11 @@ $ ./bin/linkbench -c config/LinkConfigTGDB.properties  -l  # load phase
 $ ./bin/linkbench -c config/LinkConfigTGDB.properties  -l  # request phase
 ```
 
+Pickup latest changes from TGDB service:
+```
+$ git submodule update --remote tgdb
+```
+
 LinkBench Overview
 ====================
 LinkBench is a database benchmark developed to evaluate database
