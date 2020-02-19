@@ -4,6 +4,19 @@
 
 - - -  
 
+Joana's Notes to Self
+====================
+
+Build:
+```
+$ mvn clean package -DskipTests
+```
+
+Run (after starting TGDB service on another terminal):
+```
+$ ./bin/linkbench -c config/LinkConfigTGDB.properties  -l
+```
+
 LinkBench Overview
 ====================
 LinkBench is a database benchmark developed to evaluate database
