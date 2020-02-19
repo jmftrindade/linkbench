@@ -7,20 +7,31 @@
 Joana's Notes to Self
 ====================
 
+(Optional) pickup latest changes from TGDB service if needed:
+```
+$ git submodule update --remote tgdb
+```
+
 Build:
 ```
 $ mvn clean package -DskipTests
 ```
 
-Run (after starting TGDB service on another terminal):
+Run [TGDB](http://github.com/jmftrindade/tgdb) server (from TGDB project root folder):
+```
+$ ./scripts/build_release.sh                        # build
+$ ./build/server/server > /tmp/server_out.log 2>&1  # run
+```
+
+Run client:
 ```
 $ ./bin/linkbench -c config/LinkConfigTGDB.properties  -l  # load phase
 $ ./bin/linkbench -c config/LinkConfigTGDB.properties  -l  # request phase
 ```
 
-Pickup latest changes from TGDB service:
+Optional: tail the server log from another window:
 ```
-$ git submodule update --remote tgdb
+$ tail -f /tmp/server_out.log
 ```
 
 LinkBench Overview
